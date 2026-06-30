@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1A6B3C">
+  <title>Tasks - Admin | {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:12px;opacity:0.7">Admin</span></div>
+  <a href="/admin" style="color:rgba(255,255,255,0.8);font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/tasks" class="admin-nav-item active">📋 Tasks</a>
+  <a href="/admin/submissions" class="admin-nav-item">📝 Submissions</a>
+  <a href="/admin/withdrawals" class="admin-nav-item">💸 Withdrawals</a>
+  <a href="/admin/broadcast" class="admin-nav-item">📢 Broadcast</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+  <a href="/admin/logs" class="admin-nav-item">📋 Logs</a>
+  <a href="/admin/analytics" class="admin-nav-item">📈 Analytics</a>
+  <a href="/admin/scheduled_tasks" class="admin-nav-item">⏰ Scheduled</a>
+</nav>
+
+<div class="admin-content">
+
+  <!-- HEADER + CREATE BUTTON -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <div style="font-size:20px;font-weight:800">📋 Tasks</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px">{{ tasks|length }} total tasks</div>
+    </div>
+    <button class="btn btn-primary btn-sm btn-icon" onclick="openModal('createTaskModal')" style="padding:12px 18px">
+      ➕ Create Task
+    </button>
+  </div>
+
+  <!-- TASKS LIST (card style, mobile-friendly) -->
+  {% if tasks %}
+  {% set icons = {'instagram':'📸','twitter':'🐦','x':'🐦','facebook':'👤','youtube':'▶️','tiktok':'🎵','telegram':'✈️','whatsapp':'📱','video':'🎬','link':'🔗','social':'🌟','other':'🌐'} %}
+  {% for task in tasks %}
+  <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
+    <!-- status stripe -->
+    <div style="height:3px;background:{% if task.status=='active' %}var(--primary){% else %}var(--muted){% endif %}"></div>
+    <div style="padding:14px 16px">
+
+      <!-- TOP ROW -->
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">
+        <div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;color:white">
+          {{ icons.get((task.platform or 'other')|lower, '🌐') }}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:800;line-height:1.3">{{ task.title }}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">
+            {{ (task.platform or 'Other')|title }} • {{ (task.task_type or 'other')|replace('_',' ')|title }}
+          </div>
+        </div>
+        <!-- Reward badge -->
+        <div style="background:var(--primary-light);border-radius:10px;padding:6px 12px;text-align:center;flex-shrink:0">
+          <div style="font-size:16px;font-weight:900;color:var(--primary)">
+            {% if task.currency=='dollar' %}${{ "%.4f"|format(task.reward) }}{% else %}₦{{ "%.0f"|format(task.reward) }}{% endif %}
+          </div>
+          <div style="font-size:10px;color:var(--primary);opacity:0.7;font-weight:700">Reward</div>
+        </div>
+      </div>
+
+      <!-- DESCRIPTION -->
+      {% if task.description %}
+      <div style="font-size:13px;color:var(--text2);background:#F8F9FA;border-radius:10px;padding:10px 12px;margin-bottom:10px;line-height:1.6">
+        {{ task.description[:150] }}{% if task.description|length > 150 %}...{% endif %}
+      </div>
+      {% endif %}
+
+      <!-- LINK -->
+      {% if task.link %}
+      <div style="margin-bottom:10px">
+        <a href="{{ task.link }}" target="_blank" style="font-size:12px;color:var(--primary);font-weight:700;word-break:break-all;text-decoration:none">
+          🔗 {{ task.link[:60] }}{% if task.link|length > 60 %}...{% endif %}
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- PROGRESS BAR -->
+      {% set done = task.completed_count or 0 %}
+      {% set total = task.max_users or 1 %}
+      {% set pct = [(done / total * 100)|int, 100]|min %}
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:12px;font-weight:700;color:var(--muted)">👥 Progress</span>
+          <span style="font-size:12px;font-weight:800;color:var(--primary)">{{ done }}/{{ total }} users</span>
+        </div>
+        <div class="progress" style="height:8px">
+          <div class="progress-bar" style="width:{{ pct }}%;background:{% if pct >= 100 %}var(--red){% elif pct >= 70 %}var(--orange){% else %}var(--primary){% endif %}"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">{{ total - done }} slots remaining</div>
+      </div>
+
+      <!-- TAGS ROW -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        {% if task.auto_approve %}
+        <span class="badge badge-success" style="font-size:11px">⚡ Auto Approve</span>
+        {% else %}
+        <span class="badge badge-info" style="font-size:11px">👁️ Manual Review</span>
+        {% endif %}
+
+        {% if task.expires_at %}
+        <span class="badge badge-warning" style="font-size:11px">⏰ Expires {{ task.expires_at[:10] }}</span>
+        {% else %}
+        <span class="badge" style="background:var(--bg);color:var(--muted);font-size:11px">♾️ No Expiry</span>
+        {% endif %}
+
+        <span class="badge" style="background:{% if task.status=='active' %}var(--primary-light);color:var(--primary){% else %}var(--bg);color:var(--muted){% endif %};font-size:11px">
+          {{ '✅ Active' if task.status=='active' else '⏸️ Inactive' }}
+        </span>
+      </div>
+
+      <!-- ACTION ROW -->
+      <div style="display:flex;gap:8px">
+        <a href="{{ task.link }}" target="_blank" class="btn btn-outline btn-sm" style="flex:1;font-size:12px;{% if not task.link %}pointer-events:none;opacity:0.4{% endif %}">🔗 Open Link</a>
+        <button class="btn btn-danger btn-sm" style="flex:1;font-size:12px" onclick="deleteTask('{{ task.id }}')">🗑️ Delete</button>
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <div class="empty-title">No Tasks Yet</div>
+    <div class="empty-desc">Create your first task using the button above.</div>
+    <button class="btn btn-primary" style="margin-top:20px;max-width:200px;margin-left:auto;margin-right:auto" onclick="openModal('createTaskModal')">➕ Create First Task</button>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ===== CREATE TASK MODAL ===== -->
+<div class="modal-overlay" id="createTaskModal">
+  <div class="modal" style="max-height:95vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div class="modal-title">➕ Create New Task</div>
+
+    <!-- TITLE -->
+    <div class="form-group">
+      <label class="form-label">Task Title *</label>
+      <input type="text" class="form-control" id="t-title" placeholder="e.g. Follow us on Instagram">
+    </div>
+
+    <!-- DESCRIPTION -->
+    <div class="form-group">
+      <label class="form-label">Instructions (Description)</label>
+      <textarea class="form-control" id="t-desc" rows="3" placeholder="Explain what the user needs to do step by step..."></textarea>
+    </div>
+
+    <!-- PLATFORM + TYPE -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Platform</label>
+        <select class="form-control" id="t-platform">
+          <option value="instagram">📸 Instagram</option>
+          <option value="twitter">🐦 Twitter/X</option>
+          <option value="facebook">👤 Facebook</option>
+          <option value="youtube">▶️ YouTube</option>
+          <option value="tiktok">🎵 TikTok</option>
+          <option value="telegram">✈️ Telegram</option>
+          <option value="whatsapp">📱 WhatsApp</option>
+          <option value="video">🎬 Video</option>
+          <option value="link">🔗 Link</option>
+          <option value="other">🌐 Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Task Type</label>
+        <select class="form-control" id="t-type">
+          <option value="follow">👤 Follow</option>
+          <option value="like">❤️ Like</option>
+          <option value="comment">💬 Comment</option>
+          <option value="share">📤 Share</option>
+          <option value="subscribe">🔔 Subscribe</option>
+          <option value="watch">▶️ Watch Video</option>
+          <option value="visit_link">🔗 Visit Link</option>
+          <option value="join_group">👥 Join Group</option>
+          <option value="download">📲 Download App</option>
+          <option value="other">🌐 Other</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- LINK -->
+    <div class="form-group">
+      <label class="form-label">Task Link (URL)</label>
+      <input type="url" class="form-control" id="t-link" placeholder="https://instagram.com/yourpage">
+    </div>
+
+    <!-- REWARD + CURRENCY -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Reward Amount *</label>
+        <input type="number" class="form-control" id="t-reward" placeholder="100" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currency</label>
+        <select class="form-control" id="t-curr">
+          <option value="naira">₦ Naira</option>
+          <option value="dollar">$ Dollar</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- MAX USERS + EXPIRY -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Max Users</label>
+        <input type="number" class="form-control" id="t-max" value="100" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expires in (hours)</label>
+        <input type="number" class="form-control" id="t-exp" placeholder="Leave empty = never">
+      </div>
+    </div>
+
+    <!-- AUTO APPROVE TOGGLE -->
+    <div class="card" style="background:var(--primary-light);margin-bottom:16px">
+      <div class="toggle-wrap" style="padding:0">
+        <div>
+          <div class="toggle-label">⚡ Auto Approve</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">Payment sent instantly without admin review</div>
+        </div>
+        <div class="toggle" id="t-auto-tog" onclick="this.classList.toggle('on');document.getElementById('t-auto').value=this.classList.contains('on')?'1':'0'"></div>
+      </div>
+      <input type="hidden" id="t-auto" value="0">
+    </div>
+
+    <button class="btn btn-primary btn-icon" id="ct-btn" onclick="createTask()">✅ Create Task</button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="closeModal('createTaskModal')">Cancel</button>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+async function createTask() {
+  const title = document.getElementById('t-title').value.trim();
+  const reward = document.getElementById('t-reward').value;
+  if (!title) { showToast('Please enter a task title', 'warning'); return; }
+  if (!reward || parseFloat(reward) <= 0) { showToast('Please enter a reward amount', 'warning'); return; }
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('description', document.getElementById('t-desc').value.trim());
+  fd.append('platform', document.getElementById('t-platform').value);
+  fd.append('task_type', document.getElementById('t-type').value);
+  fd.append('link', document.getElementById('t-link').value.trim());
+  fd.append('reward', reward);
+  fd.append('currency', document.getElementById('t-curr').value);
+  fd.append('max_users', document.getElementById('t-max').value || '100');
+  fd.append('expires_hours', document.getElementById('t-exp').value);
+  fd.append('auto_approve', document.getElementById('t-auto').value);
+  const r = await postForm('/admin/create_task', fd, document.getElementById('ct-btn'));
+  if (r?.success) {
+    closeModal('createTaskModal');
+    // Clear form
+    ['t-title','t-desc','t-link','t-reward','t-exp'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = id === 't-max' ? '100' : '';
+    });
+    document.getElementById('t-auto-tog').classList.remove('on');
+    document.getElementById('t-auto').value = '0';
+    setTimeout(() => location.reload(), 1200);
+  }
+}
+async function deleteTask(tid) {
+  if (!confirm('Delete this task? This cannot be undone!')) return;
+  const fd = new FormData();
+  fd.append('task_id', tid);
+  const r = await postForm('/admin/delete_task', fd, null);
+  if (r?.success) setTimeout(() => location.reload(), 800);
+}
+</script>
+</body>
+</html>

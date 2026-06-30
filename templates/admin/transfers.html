@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>{{ t("transfers_log") }} - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="page-header" style="background:linear-gradient(135deg,#1a0533,#3d0d6b)">
+  <a href="/admin" class="back-btn" style="background:rgba(255,255,255,0.15)">←</a>
+  <div class="page-title-wrap"><div class="page-title">🔄 {{ t('transfers_log') }}</div></div>
+</div>
+<div style="padding:14px;background:#F0F4FF;min-height:calc(100vh - 60px)">
+  {% if transfers %}
+  {% for tr in transfers %}
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div>
+        <div style="font-size:14px;font-weight:700">{{ tr.sender_name }} → {{ tr.receiver_name }}</div>
+        <div style="font-size:12px;color:var(--muted)">{{ tr.time[:16] if tr.time else '' }}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:16px;font-weight:800">₦{{ "%.2f"|format(tr.amount) }}</div>
+        {% if tr.status=='reversed' %}<span class="badge badge-warning">Reversed</span>{% endif %}
+      </div>
+    </div>
+    {% if tr.status != 'reversed' %}
+    <button class="btn btn-outline btn-sm btn-icon" onclick="reverseTransfer('{{ tr.id }}')">🔄 {{ t('reverse') }}</button>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-title">No transfers</div></div>
+  {% endif %}
+</div>
+
+  <div id="toast-container" class="toast-container"></div>
+  <script src="/static/js/app.js"></script>
+<script>
+async function reverseTransfer(trid) {
+  if (!confirm('Reverse this transfer?')) return;
+  const fd = new FormData(); fd.append('tr_id', trid);
+  const r = await postForm('/admin/reverse_transfer', fd);
+  if (r?.success) setTimeout(() => location.reload(), 1200);
+}
+</script>
+</body>
+</html>

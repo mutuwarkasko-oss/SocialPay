@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - Admin | {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Analytics</span></div>
+  <a href="/admin" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/analytics" class="admin-nav-item active">📈 Analytics</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/tasks" class="admin-nav-item">📋 Tasks</a>
+  <a href="/admin/withdrawals" class="admin-nav-item">💸 Withdrawals</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:20px">📈 Analytics Dashboard</div>
+
+  <!-- Summary Cards -->
+  <div class="admin-stats" style="margin-bottom:20px">
+    <div class="admin-stat-card"><div class="admin-stat-val">{{ total_users }}</div><div class="admin-stat-lbl">Total Users</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val">{{ new_7d }}</div><div class="admin-stat-lbl">New This Week</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val" style="color:var(--green)">₦{{ "%.0f"|format(total_earned) }}</div><div class="admin-stat-lbl">Total Earned</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val" style="color:var(--orange)">₦{{ "%.0f"|format(total_withdrawn) }}</div><div class="admin-stat-lbl">Total Withdrawn</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val" style="color:var(--red)">{{ pending_wds }}</div><div class="admin-stat-lbl">Pending WDs</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val" style="color:var(--orange)">{{ pending_subs }}</div><div class="admin-stat-lbl">Pending Subs</div></div>
+  </div>
+
+  <!-- Daily Charts -->
+  {% if rows %}
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">📅 Daily Signups (Last 30 Days)</div>
+    <canvas id="signupChart" height="120"></canvas>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">💰 Daily Earnings vs Withdrawals</div>
+    <canvas id="earningsChart" height="120"></canvas>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">✅ Daily Tasks Approved + Transfers</div>
+    <canvas id="activityChart" height="100"></canvas>
+  </div>
+  {% endif %}
+
+  <!-- Top Earners -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card" style="padding:0">
+      <div style="padding:12px 16px;font-size:14px;font-weight:800;border-bottom:1px solid #f0f0f0">🏆 Top Earners</div>
+      {% for u in top_earners %}
+      <div style="display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid #f9f9f9">
+        <div style="width:24px;height:24px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:800;margin-right:10px">{{ loop.index }}</div>
+        <div style="flex:1;font-size:12px;font-weight:700">{{ u.name[:16] }}</div>
+        <div style="font-size:12px;color:var(--green);font-weight:700">₦{{ "%.0f"|format(u.total_earned) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="card" style="padding:0">
+      <div style="padding:12px 16px;font-size:14px;font-weight:800;border-bottom:1px solid #f0f0f0">🔗 Top Referrers</div>
+      {% for u in top_refs %}
+      <div style="display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid #f9f9f9">
+        <div style="width:24px;height:24px;background:linear-gradient(135deg,#FF6B6B,#FFE66D);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:800;margin-right:10px">{{ loop.index }}</div>
+        <div style="flex:1;font-size:12px;font-weight:700">{{ u.name[:16] }}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:700">{{ u.total }} refs</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Platform breakdown -->
+  {% if platforms %}
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px">📱 Task Completions by Platform</div>
+    {% set max_cnt = platforms[0].cnt %}
+    {% for p in platforms %}
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:3px">
+        <span>{{ p.platform|title }}</span><span>{{ p.cnt }}</span>
+      </div>
+      <div style="background:#eee;border-radius:6px;height:8px">
+        <div style="background:linear-gradient(90deg,var(--primary),var(--accent));height:100%;border-radius:6px;width:{{ (p.cnt / max_cnt * 100)|int }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Raw data table -->
+  {% if rows %}
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:12px 16px;font-size:14px;font-weight:800">📋 Daily Data</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#f5f5f5">
+        <th style="padding:8px 12px;text-align:left">Date</th>
+        <th style="padding:8px 12px;text-align:right">Users</th>
+        <th style="padding:8px 12px;text-align:right">Earned</th>
+        <th style="padding:8px 12px;text-align:right">Withdrawn</th>
+        <th style="padding:8px 12px;text-align:right">Tasks</th>
+        <th style="padding:8px 12px;text-align:right">Spins</th>
+      </tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:7px 12px;font-weight:700">{{ r.date }}</td>
+          <td style="padding:7px 12px;text-align:right">{{ r.new_users }}</td>
+          <td style="padding:7px 12px;text-align:right;color:var(--green)">₦{{ "%.0f"|format(r.total_earned) }}</td>
+          <td style="padding:7px 12px;text-align:right;color:var(--orange)">₦{{ "%.0f"|format(r.total_withdrawn) }}</td>
+          <td style="padding:7px 12px;text-align:right">{{ r.tasks_approved }}</td>
+          <td style="padding:7px 12px;text-align:right">{{ r.spins_done }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+{% if rows %}
+const rawRows = {{ rows|tojson }};
+const rows = rawRows.slice().reverse();
+const labels = rows.map(r => r.date.slice(5));
+const colors = { blue:'rgba(10,36,99,0.8)', green:'rgba(6,214,160,0.8)', orange:'rgba(255,165,0,0.8)', red:'rgba(239,35,60,0.6)', purple:'rgba(138,43,226,0.7)' };
+
+function makeChart(id, datasets, type='line') {
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive:true, interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},
+      scales:{y:{beginAtZero:true,grid:{color:'#f0f0f0'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10},maxRotation:0}}}
+    }
+  });
+}
+
+makeChart('signupChart', [{label:'New Users',data:rows.map(r=>r.new_users),backgroundColor:colors.blue,borderColor:colors.blue,tension:0.3,fill:true}]);
+makeChart('earningsChart', [
+  {label:'Earned',data:rows.map(r=>r.total_earned),borderColor:colors.green,tension:0.3,fill:false},
+  {label:'Withdrawn',data:rows.map(r=>r.total_withdrawn),borderColor:colors.orange,tension:0.3,fill:false}
+]);
+makeChart('activityChart', [
+  {label:'Tasks',data:rows.map(r=>r.tasks_approved),backgroundColor:colors.purple,borderRadius:4},
+  {label:'Transfers',data:rows.map(r=>r.transfers_done),backgroundColor:colors.blue,borderRadius:4}
+], 'bar');
+{% endif %}
+</script>
+</body>
+</html>

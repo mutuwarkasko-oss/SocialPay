@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheduled Tasks - Admin | {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Admin</span></div>
+  <a href="/admin/tasks" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Tasks</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/tasks" class="admin-nav-item">📋 Tasks</a>
+  <a href="/admin/scheduled_tasks" class="admin-nav-item active">⏰ Scheduled</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:6px">⏰ Scheduled Tasks</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Tasks that will auto-publish at a set date & time.</div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">➕ Schedule New Task</div>
+    <div class="form-group"><label class="form-label">Title</label><input type="text" class="form-control" id="st-title" placeholder="Task title..."></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="st-desc" rows="2" placeholder="What should users do?"></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">Platform</label>
+        <select class="form-control" id="st-platform">
+          <option value="youtube">YouTube</option><option value="instagram">Instagram</option>
+          <option value="tiktok">TikTok</option><option value="facebook">Facebook</option>
+          <option value="twitter">Twitter/X</option><option value="telegram">Telegram</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Currency</label>
+        <select class="form-control" id="st-currency"><option value="naira">₦ Naira</option><option value="dollar">$ Dollar</option></select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">Reward</label><input type="number" class="form-control" id="st-reward" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Max Users</label><input type="number" class="form-control" id="st-maxusers" value="100"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Task Link (optional)</label><input type="url" class="form-control" id="st-link" placeholder="https://..."></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">Expires After (hours, optional)</label><input type="number" class="form-control" id="st-expires" placeholder="e.g. 24"></div>
+      <div class="form-group"><label class="form-label">Publish At</label><input type="datetime-local" class="form-control" id="st-publish"></div>
+    </div>
+    <button class="btn btn-primary" id="st-btn" onclick="scheduleTask()" style="width:100%">⏰ Schedule Task</button>
+  </div>
+
+  {% if tasks %}
+  <div class="card" style="padding:0">
+    <div style="padding:12px 16px;font-size:14px;font-weight:800">📋 Scheduled Queue ({{ tasks|length }})</div>
+    {% for task in tasks %}
+    {% set td = task.task_data|tojson %}
+    <div style="padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:800">{{ (task.task_data|fromjson).title if task.task_data else 'Task' }}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">📅 Publish: {{ task.publish_at[:16].replace('T',' ') if task.publish_at else '—' }}</div>
+        <div style="font-size:11px;margin-top:2px">{% if task.published %}<span style="color:var(--green);font-weight:700">✅ Published</span>{% else %}<span style="color:var(--orange);font-weight:700">⏳ Waiting</span>{% endif %}</div>
+      </div>
+      {% if not task.published %}
+      <button class="btn btn-danger btn-sm" onclick="deleteScheduled('{{ task.id }}')">🗑️</button>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="text-align:center;color:var(--muted);padding:30px">
+    <div style="font-size:32px;margin-bottom:8px">⏰</div>
+    <div>No scheduled tasks yet. Create one above.</div>
+  </div>
+  {% endif %}
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+async function scheduleTask() {
+  const fd = new FormData();
+  fd.append('title', document.getElementById('st-title').value);
+  fd.append('description', document.getElementById('st-desc').value);
+  fd.append('platform', document.getElementById('st-platform').value);
+  fd.append('currency', document.getElementById('st-currency').value);
+  fd.append('reward', document.getElementById('st-reward').value);
+  fd.append('max_users', document.getElementById('st-maxusers').value);
+  fd.append('link', document.getElementById('st-link').value);
+  fd.append('expires_hours', document.getElementById('st-expires').value);
+  const pub = document.getElementById('st-publish').value;
+  if (!pub) { showToast('Please set a publish date/time', 'warning'); return; }
+  fd.append('publish_at', pub.replace('T',' '));
+  const r = await postForm('/admin/create_scheduled_task', fd, document.getElementById('st-btn'));
+  if (r?.success) setTimeout(() => location.reload(), 1000);
+}
+async function deleteScheduled(id) {
+  const fd = new FormData(); fd.append('task_id', id);
+  const r = await postForm('/admin/delete_scheduled_task', fd, null);
+  if (r?.success) location.reload();
+}
+</script>
+</body>
+</html>

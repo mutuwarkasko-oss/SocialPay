@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submissions - Admin</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Admin</span></div>
+  <a href="/admin" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/tasks" class="admin-nav-item">📋 Tasks</a>
+  <a href="/admin/submissions" class="admin-nav-item active">📝 Submissions</a>
+  <a href="/admin/withdrawals" class="admin-nav-item">💸 Withdrawals</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:16px">📝 Submissions</div>
+  <div class="filter-tabs">
+    <a href="?status=pending" class="filter-tab {{ 'active' if status=='pending' else '' }}">⏳ Pending</a>
+    <a href="?status=approved" class="filter-tab {{ 'active' if status=='approved' else '' }}">✅ Approved</a>
+    <a href="?status=rejected" class="filter-tab {{ 'active' if status=='rejected' else '' }}">❌ Rejected</a>
+  </div>
+  {% if submissions %}
+  {% for s in submissions %}
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-size:15px;font-weight:800">{{ s.task_title }}</div>
+        <div style="font-size:12px;color:var(--muted)">👤 {{ s.user_name }} ({{ s.user_email }})</div>
+        <div style="font-size:11px;color:var(--muted)">{{ s.submitted_at[:16].replace('T',' ') }}</div>
+      </div>
+      <div style="font-size:16px;font-weight:800;color:var(--green)">{% if s.currency=='dollar' %}${{ "%.4f"|format(s.reward) }}{% else %}₦{{ "%.0f"|format(s.reward) }}{% endif %}</div>
+    </div>
+    {% if s.proof and s.proof != '[SCREENSHOT]' %}
+    <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:10px;font-size:13px;word-break:break-all">{{ s.proof[:300] }}</div>
+    {% endif %}
+    {% if s.screenshot %}
+    <div style="margin-bottom:10px">
+      <img src="{{ s.screenshot }}" class="proof-thumb" onclick="openImageFull('{{ s.screenshot }}')" alt="Proof">
+      <span style="font-size:11px;color:var(--accent);cursor:pointer;margin-left:8px" onclick="openImageFull('{{ s.screenshot }}')">🔍 View Full</span>
+    </div>
+    {% endif %}
+    {% if status=='pending' %}
+    <div class="form-group"><label class="form-label">Note (optional)</label><input type="text" class="form-control" id="note-{{ s.id }}" placeholder="Reason for rejection..."></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button class="btn btn-success btn-sm" onclick="review('{{ s.id }}','approve')">✅ Approve</button>
+      <button class="btn btn-danger btn-sm" onclick="review('{{ s.id }}','reject')">❌ Reject</button>
+      <button class="btn btn-outline btn-sm" onclick="delSub('{{ s.id }}')" style="border-color:#ccc;font-size:12px">🗑️ Delete</button>
+    </div>
+    {% else %}
+    {% if s.note %}<div class="alert alert-info" style="margin:0">💬 {{ s.note }}</div>{% endif %}
+    <div style="margin-top:10px">
+      <button class="btn btn-outline btn-sm" onclick="delSub('{{ s.id }}')" style="border-color:#FF3B30;color:#FF3B30;font-size:12px">🗑️ Delete Record</button>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No {{ status }} submissions</div></div>
+  {% endif %}
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+async function review(sid, action) {
+  const fd=new FormData();
+  fd.append('sub_id',sid); fd.append('action',action);
+  const noteEl=document.getElementById('note-'+sid);
+  if(noteEl) fd.append('note',noteEl.value.trim());
+  const r=await postForm('/admin/review_submission',fd,null);
+  if(r?.success) setTimeout(()=>location.reload(),900);
+}
+async function delSub(sid) {
+  if(!confirm('Delete this submission record permanently?')) return;
+  const fd=new FormData(); fd.append('sub_id',sid);
+  const r=await postForm('/admin/delete_submission',fd,null);
+  if(r?.success) setTimeout(()=>location.reload(),700);
+}
+</script>
+</body>
+</html>

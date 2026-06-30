@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages - Admin | {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Admin</span></div>
+  <a href="/admin" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/tasks" class="admin-nav-item">📋 Tasks</a>
+  <a href="/admin/submissions" class="admin-nav-item">📝 Submissions</a>
+  <a href="/admin/withdrawals" class="admin-nav-item">💸 Withdrawals</a>
+  <a href="/admin/broadcast" class="admin-nav-item">📢 Broadcast</a>
+  <a href="/admin/messages" class="admin-nav-item active">📩 Messages</a>
+  <a href="/admin/support" class="admin-nav-item">🎫 Support</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:20px">📩 Send Message to User</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">✉️ New Message</div>
+    <div class="form-group">
+      <label class="form-label">Select User</label>
+      <select class="form-control" id="msg-user">
+        <option value="">-- Select User --</option>
+        {% for u in users %}
+        <option value="{{ u.id }}">{{ u.name }} ({{ u.id }}) — {{ u.email }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <textarea class="form-control" id="msg-text" rows="4" placeholder="Type your message here..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Image (optional)</label>
+      <div style="background:var(--bg);border-radius:12px;padding:12px;border:2px dashed #ddd;text-align:center;cursor:pointer" onclick="document.getElementById('msg-img-inp').click()">
+        <div id="msg-img-preview" style="display:none"><img id="msg-img-prev" style="max-width:100%;max-height:200px;border-radius:8px"></div>
+        <div id="msg-img-placeholder">
+          <div style="font-size:24px">🖼️</div>
+          <div style="font-size:13px;color:var(--muted)">Tap to attach image</div>
+        </div>
+      </div>
+      <input type="file" id="msg-img-inp" accept="image/*" style="display:none" onchange="previewMsgImg(this)">
+      <div id="msg-img-progress" style="display:none;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
+          <span>📤 Uploading...</span><span id="msg-img-pct">0%</span>
+        </div>
+        <div style="background:#eee;border-radius:8px;height:8px;overflow:hidden">
+          <div id="msg-img-bar" style="height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width 0.15s;border-radius:8px"></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="send-msg-btn" onclick="sendMessage()">📩 Send Message</button>
+  </div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+let msgImgData = '';
+
+async function previewMsgImg(input) {
+  const file = input.files[0]; if(!file) return;
+  const prog = document.getElementById('msg-img-progress');
+  const bar = document.getElementById('msg-img-bar');
+  const pct = document.getElementById('msg-img-pct');
+  if(prog) prog.style.display = 'block';
+  let p = 0;
+  const iv = setInterval(() => {
+    p += Math.random() * 15 + 5; p = Math.min(p, 90);
+    if(bar) bar.style.width = p + '%';
+    if(pct) pct.textContent = Math.round(p) + '%';
+  }, 100);
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const resp = await fetch('/upload_screenshot', {credentials:'same-origin',
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({image: e.target.result})
+      });
+      const result = await resp.json();
+      clearInterval(iv);
+      if(result.success) {
+        msgImgData = result.image;
+        if(bar) bar.style.width = '100%'; if(pct) pct.textContent = '100%';
+        setTimeout(() => { if(prog) prog.style.display='none'; }, 500);
+        document.getElementById('msg-img-prev').src = msgImgData;
+        document.getElementById('msg-img-preview').style.display = 'block';
+        document.getElementById('msg-img-placeholder').style.display = 'none';
+      } else {
+        clearInterval(iv); if(prog) prog.style.display='none';
+        showToast(result.message || 'Upload failed', 'warning');
+      }
+    } catch {
+      clearInterval(iv); if(prog) prog.style.display='none';
+      msgImgData = e.target.result;
+      document.getElementById('msg-img-prev').src = msgImgData;
+      document.getElementById('msg-img-preview').style.display = 'block';
+      document.getElementById('msg-img-placeholder').style.display = 'none';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function sendMessage() {
+  const userId = document.getElementById('msg-user').value;
+  const text = document.getElementById('msg-text').value.trim();
+  if(!userId){showToast('Please select a user','warning');return;}
+  if(!text && !msgImgData){showToast('Please enter a message or attach an image','warning');return;}
+  const fd = new FormData();
+  fd.append('user_id', userId);
+  fd.append('message', text);
+  if(msgImgData) fd.append('image', msgImgData);
+  const r = await postForm('/admin/send_message', fd, document.getElementById('send-msg-btn'));
+  if(r?.success) {
+    document.getElementById('msg-text').value = '';
+    msgImgData = '';
+    document.getElementById('msg-img-preview').style.display = 'none';
+    document.getElementById('msg-img-placeholder').style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>

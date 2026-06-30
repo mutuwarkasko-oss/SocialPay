@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>{{ t("withdraw_money") }} - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="page-header" style="background:linear-gradient(135deg,#1a0533,#3d0d6b)">
+  <a href="/admin" class="back-btn" style="background:rgba(255,255,255,0.15)">←</a>
+  <div class="page-title-wrap"><div class="page-title">💸 {{ t('withdraw_money') }}</div></div>
+</div>
+<div class="status-tabs">
+  <a href="?status=pending" class="status-tab {{ 'active' if status=='pending' else '' }}">⏳ Pending</a>
+  <a href="?status=approved" class="status-tab {{ 'active' if status=='approved' else '' }}">✅ Approved</a>
+  <a href="?status=rejected" class="status-tab {{ 'active' if status=='rejected' else '' }}">❌ Rejected</a>
+</div>
+<div style="padding:14px 14px 40px;background:#F0F4FF;min-height:calc(100vh - 110px)">
+  {% if withdrawals %}
+  {% for w in withdrawals %}
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+      <div><div style="font-size:14px;font-weight:700">{{ w.user_name }}</div><div style="font-size:12px;color:var(--muted)">{{ w.user_email }}</div></div>
+      <div style="text-align:right"><div style="font-size:18px;font-weight:800;color:var(--red)">₦{{ "%.2f"|format(w.amount) }}</div><div style="font-size:12px;color:var(--green)">Net: ₦{{ "%.2f"|format(w.net) }}</div></div>
+    </div>
+    <div style="background:#F0F4FF;border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">{{ t('bank_details') }}:</div>
+      <div style="font-size:13px;font-weight:600;white-space:pre-wrap">{{ w.bank_info }}</div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:{{ '10px' if w.status=='pending' else '0' }}">{{ w.requested_at[:16] if w.requested_at else '' }}</div>
+    {% if w.status=='pending' %}
+    <div class="form-group"><input type="text" class="form-control" id="wn-{{ w.id }}" placeholder="Note (optional)" style="font-size:13px;padding:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-success btn-sm btn-icon" style="flex:1" id="wapp-{{ w.id }}" onclick="processWd('{{ w.id }}','approve')">✅ {{ t('approve') }}</button>
+      <button class="btn btn-danger btn-sm btn-icon" style="flex:1" id="wrej-{{ w.id }}" onclick="processWd('{{ w.id }}','reject')">❌ {{ t('reject') }}</button>
+    </div>
+    {% else %}
+    {% if w.note %}<div class="alert alert-info">💬 {{ w.note }}</div>{% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No withdrawals</div></div>
+  {% endif %}
+</div>
+
+  <div id="toast-container" class="toast-container"></div>
+  <script src="/static/js/app.js"></script>
+<script>
+async function processWd(wid, action) {
+  const note = document.getElementById(`wn-${wid}`)?.value || '';
+  const fd = new FormData();
+  fd.append('wd_id', wid); fd.append('action', action); fd.append('note', note);
+  const btn = document.getElementById(`${action=='approve'?'wapp':'wrej'}-${wid}`);
+  const r = await postForm('/admin/process_withdrawal', fd, btn);
+  if (r?.success) setTimeout(() => location.reload(), 1200);
+}
+</script>
+</body>
+</html>

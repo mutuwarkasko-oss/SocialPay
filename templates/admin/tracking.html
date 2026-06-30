@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Tracking - Admin | {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Admin</span></div>
+  <a href="/admin" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/tracking" class="admin-nav-item active">📍 Tracking</a>
+  <a href="/admin/logs" class="admin-nav-item">📋 Logs</a>
+  <a href="/admin/analytics" class="admin-nav-item">📈 Analytics</a>
+  <a href="/admin/scheduled_tasks" class="admin-nav-item">⏰ Scheduled</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:6px">📍 User Tracking</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Super Admin only — IP, location, device info. Last 200 records.</div>
+  {% if tracks %}
+  <div class="card" style="padding:0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:var(--primary);color:white">
+          <th style="padding:10px 12px;text-align:left">User</th>
+          <th style="padding:10px 12px;text-align:left">IP</th>
+          <th style="padding:10px 12px;text-align:left">Location</th>
+          <th style="padding:10px 12px;text-align:left">Device</th>
+          <th style="padding:10px 12px;text-align:left">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tr in tracks %}
+        <tr style="border-bottom:1px solid #f0f0f0;{% if loop.index % 2 == 0 %}background:#fafafa{% endif %}">
+          <td style="padding:8px 12px">
+            <a href="/admin/user/{{ tr.user_id }}" style="color:var(--primary);font-weight:700;text-decoration:none">
+              {{ tr.name or tr.user_id }}<br>
+              <span style="color:var(--muted);font-weight:400;font-size:11px">{{ tr.user_id }}</span>
+            </a>
+          </td>
+          <td style="padding:8px 12px;font-family:monospace;color:#555">{{ tr.ip_address or '—' }}</td>
+          <td style="padding:8px 12px">
+            {% if tr.country %}
+              <span style="font-weight:700">{{ tr.city or '' }}</span>{% if tr.city %}, {% endif %}{{ tr.country }}
+            {% else %}
+              <span style="color:var(--muted)">Unknown</span>
+            {% endif %}
+          </td>
+          <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)" title="{{ tr.device_info }}">
+            {{ (tr.device_info or '—')[:60] }}
+          </td>
+          <td style="padding:8px 12px;color:var(--muted);white-space:nowrap">
+            {{ tr.time[:16].replace('T',' ') if tr.time else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card" style="text-align:center;color:var(--muted);padding:40px">
+    <div style="font-size:40px;margin-bottom:10px">📍</div>
+    <div>No tracking data yet. Records appear after users log in.</div>
+  </div>
+  {% endif %}
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

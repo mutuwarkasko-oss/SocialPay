@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <title>Broadcast - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Admin</span></div>
+  <a href="/admin" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/broadcast" class="admin-nav-item active">📢 Broadcast</a>
+  <a href="/admin/messages" class="admin-nav-item">📩 Messages</a>
+  <a href="/admin/support" class="admin-nav-item">🎫 Support</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:6px">📢 Broadcast to All Users</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Send a styled message + optional image to every user instantly.</div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">✍️ Compose Broadcast</div>
+    <div class="form-group">
+      <label class="form-label">Message (no formatting restrictions)</label>
+      <textarea class="form-control" id="bc-msg" rows="5" placeholder="Write your announcement... Emoji, links, any content allowed."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message Type</label>
+      <select class="form-control" id="bc-type">
+        <option value="info">ℹ️ Info (Blue)</option>
+        <option value="success">✅ Good News (Green)</option>
+        <option value="warning">⚠️ Warning (Orange)</option>
+        <option value="error">❌ Alert (Red)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Image Attachment (optional)</label>
+      <div style="background:var(--bg);border-radius:12px;padding:16px;border:2px dashed #ddd;text-align:center;cursor:pointer" onclick="document.getElementById('bc-img-inp').click()">
+        <div id="bc-img-preview" style="display:none"><img id="bc-img-prev" style="max-width:100%;max-height:240px;border-radius:10px;margin-bottom:8px"><br><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();clearBcImg()">✕ Remove</button></div>
+        <div id="bc-img-placeholder"><div style="font-size:32px">🖼️</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Tap to attach an image</div></div>
+      </div>
+      <input type="file" id="bc-img-inp" accept="image/*" style="display:none" onchange="previewBcImg(this)">
+      <div id="bc-img-progress" style="display:none;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px"><span>📤 Uploading...</span><span id="bc-img-pct">0%</span></div>
+        <div style="background:#eee;border-radius:8px;height:8px;overflow:hidden"><div id="bc-img-bar" style="height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width 0.15s;border-radius:8px"></div></div>
+      </div>
+    </div>
+    <div id="bc-preview" style="display:none;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">👁️ Preview</div>
+      <div id="bc-preview-card" style="border-radius:14px;padding:14px;background:#EBF5FF;border-left:4px solid #0A2463">
+        <div id="bc-preview-icon" style="font-size:12px;font-weight:800;color:#0A2463;margin-bottom:6px">📢 Admin Notice</div>
+        <div id="bc-preview-text" style="font-size:14px;line-height:1.6;white-space:pre-wrap"></div>
+        <div id="bc-preview-img-wrap" style="display:none;margin-top:10px"><img id="bc-preview-img" style="max-width:100%;border-radius:10px"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="bc-btn" onclick="doBroadcast()" style="width:100%">📢 Send Broadcast to All Users</button>
+  </div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+let bcImgData='';
+const typeStyles={info:{bg:'#EBF5FF',border:'#0A2463',color:'#0A2463',icon:'ℹ️ Admin Notice'},success:{bg:'#E8F8F0',border:'#06D6A0',color:'#1a6b3c',icon:'✅ Good News'},warning:{bg:'#FFF8E1',border:'#FFB300',color:'#856404',icon:'⚠️ Warning'},error:{bg:'#FFF0F0',border:'#EF233C',color:'#c0392b',icon:'❌ Alert'}};
+document.getElementById('bc-msg').addEventListener('input',updatePreview);
+document.getElementById('bc-type').addEventListener('change',updatePreview);
+function updatePreview(){
+  const msg=document.getElementById('bc-msg').value.trim(),type=document.getElementById('bc-type').value;
+  const prev=document.getElementById('bc-preview');
+  if(!msg&&!bcImgData){prev.style.display='none';return;}
+  prev.style.display='block';
+  const s=typeStyles[type]||typeStyles.info;
+  const card=document.getElementById('bc-preview-card');
+  card.style.background=s.bg;card.style.borderLeftColor=s.border;
+  document.getElementById('bc-preview-icon').innerHTML=s.icon;document.getElementById('bc-preview-icon').style.color=s.color;
+  document.getElementById('bc-preview-text').textContent=msg;
+}
+async function previewBcImg(input){
+  const file=input.files[0];if(!file)return;
+  const prog=document.getElementById('bc-img-progress'),bar=document.getElementById('bc-img-bar'),pct=document.getElementById('bc-img-pct');
+  if(prog)prog.style.display='block';let p=0;
+  const iv=setInterval(()=>{p+=Math.random()*15+5;p=Math.min(p,90);if(bar)bar.style.width=p+'%';if(pct)pct.textContent=Math.round(p)+'%';},100);
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{const resp=await fetch('/upload_screenshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:e.target.result}),credentials:'same-origin'});const result=await resp.json();clearInterval(iv);bcImgData=result.success?result.image:e.target.result;}
+    catch{clearInterval(iv);bcImgData=e.target.result;}
+    if(pct)pct.textContent='100%';setTimeout(()=>{if(prog)prog.style.display='none';},500);
+    document.getElementById('bc-img-prev').src=bcImgData;document.getElementById('bc-img-preview').style.display='block';document.getElementById('bc-img-placeholder').style.display='none';
+    document.getElementById('bc-preview-img').src=bcImgData;document.getElementById('bc-preview-img-wrap').style.display='block';updatePreview();
+  };reader.readAsDataURL(file);
+}
+function clearBcImg(){bcImgData='';document.getElementById('bc-img-preview').style.display='none';document.getElementById('bc-img-placeholder').style.display='block';document.getElementById('bc-preview-img-wrap').style.display='none';document.getElementById('bc-img-inp').value='';updatePreview();}
+async function doBroadcast(){
+  const msg=document.getElementById('bc-msg').value.trim();
+  if(!msg&&!bcImgData){showToast('Please write a message or attach an image','warning');return;}
+  const fd=new FormData();fd.append('message',msg);fd.append('type',document.getElementById('bc-type').value);
+  if(bcImgData)fd.append('image',bcImgData);
+  const r=await postForm('/admin/broadcast',fd,document.getElementById('bc-btn'));
+  if(r?.success){document.getElementById('bc-msg').value='';clearBcImg();document.getElementById('bc-preview').style.display='none';}
+}
+</script>
+</body>
+</html>

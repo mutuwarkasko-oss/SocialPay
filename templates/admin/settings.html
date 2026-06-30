@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a0533">
+  <title>Settings - Admin</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Admin</span></div>
+  <a href="/admin" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/tasks" class="admin-nav-item">📋 Tasks</a>
+  <a href="/admin/submissions" class="admin-nav-item">📝 Submissions</a>
+  <a href="/admin/withdrawals" class="admin-nav-item">💸 Withdrawals</a>
+  <a href="/admin/broadcast" class="admin-nav-item">📢 Broadcast</a>
+  <a href="/admin/support" class="admin-nav-item">🎫 Support</a>
+  <a href="/admin/settings" class="admin-nav-item active">⚙️ Settings</a>
+  <a href="/admin/logs" class="admin-nav-item">📋 Logs</a>
+  <a href="/admin/analytics" class="admin-nav-item">📈 Analytics</a>
+  <a href="/admin/scheduled_tasks" class="admin-nav-item">⏰ Scheduled</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:20px">⚙️ System Settings</div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px">💰 Financial Settings</div>
+    <div class="form-group"><label class="form-label">Referral L1 Bonus (₦)</label><input type="number" class="form-control" name="referral_bonus" id="referral_bonus" value="{{ settings.referral_bonus }}"></div>
+    <div class="form-group"><label class="form-label">Referral L2 Bonus (₦)</label><input type="number" class="form-control" name="referral_bonus_l2" id="referral_bonus_l2" value="{{ settings.get('referral_bonus_l2',15) }}"></div>
+    <div class="form-group"><label class="form-label">Tasks Needed for Referral Bonus</label><input type="number" class="form-control" name="referral_tasks_needed" id="referral_tasks_needed" value="{{ settings.referral_tasks_needed }}"></div>
+    <div class="form-group"><label class="form-label">Withdrawal Fee (%)</label><input type="number" class="form-control" name="withdrawal_fee_percent" id="withdrawal_fee_percent" value="{{ settings.withdrawal_fee_percent }}" step="0.1"></div>
+    <div class="form-group"><label class="form-label">Min Withdrawal (₦)</label><input type="number" class="form-control" name="min_withdrawal" id="min_withdrawal" value="{{ settings.min_withdrawal }}"></div>
+    <div class="form-group"><label class="form-label">Max Withdrawal (₦)</label><input type="number" class="form-control" name="max_withdrawal" id="max_withdrawal" value="{{ settings.max_withdrawal }}"></div>
+    <div class="form-group"><label class="form-label">Exchange Rate ($1 = ₦)</label><input type="number" class="form-control" name="exchange_rate" id="exchange_rate" value="{{ settings.exchange_rate }}"></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px">🎁 Reward Settings</div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">Sign-up Reward Enabled</span>
+      <div class="toggle {{ 'on' if settings.signup_reward_enabled else '' }}" id="signup_toggle" onclick="toggleSwitch('signup_toggle','signup_reward_enabled')"></div>
+      <input type="hidden" id="signup_reward_enabled" value="{{ '1' if settings.signup_reward_enabled else '0' }}">
+    </div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Sign-up Reward Amount (₦)</label><input type="number" class="form-control" id="signup_reward_amount" value="{{ settings.get('signup_reward_amount',50) }}"></div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">Daily Login Reward Enabled</span>
+      <div class="toggle {{ 'on' if settings.daily_login_enabled else '' }}" id="daily_toggle" onclick="toggleSwitch('daily_toggle','daily_login_enabled')"></div>
+      <input type="hidden" id="daily_login_enabled" value="{{ '1' if settings.daily_login_enabled else '0' }}">
+    </div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Daily Login Reward (₦)</label><input type="number" class="form-control" id="daily_login_reward" value="{{ settings.get('daily_login_reward',10) }}"></div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">Spin & Win Enabled</span>
+      <div class="toggle {{ 'on' if settings.spin_enabled else '' }}" id="spin_toggle" onclick="toggleSwitch('spin_toggle','spin_enabled')"></div>
+      <input type="hidden" id="spin_enabled" value="{{ '1' if settings.spin_enabled else '0' }}">
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label class="form-label">Spin Cost per Spin (₦)</label>
+      <input type="number" class="form-control" id="spin_cost" value="{{ settings.get('spin_cost', 50)|int }}" min="1" placeholder="e.g. 50">
+      <div style="font-size:11px;color:#888;margin-top:4px">Amount deducted from user wallet before each spin</div>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label class="form-label">Daily Spin Limit per User (0 = unlimited)</label>
+      <input type="number" class="form-control" id="spin_daily_limit" value="{{ settings.get('spin_daily_limit', 0)|int }}" min="0" placeholder="0 = unlimited">
+      <div style="font-size:11px;color:#888;margin-top:4px">Max spins per user per day. 0 means unlimited.</div>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label class="form-label">Spin Prize Amounts (₦) — comma separated</label>
+      <input type="text" class="form-control" id="spin_prizes" value="{{ settings.get('spin_prizes', [10,50,100,200,500,1000])|join(',') }}" placeholder="e.g. 10,50,100,200,500,1000">
+      <div style="font-size:11px;color:#888;margin-top:4px">Up to 8 prize amounts. Smaller prizes = higher chance of winning. Example: 10,50,100,200,500,1000</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px">🌐 Site Settings</div>
+    <div class="form-group"><label class="form-label">Site Name</label><input type="text" class="form-control" id="site_name" value="{{ settings.site_name }}"></div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">Maintenance Mode</span>
+      <div class="toggle {{ 'on' if settings.maintenance else '' }}" id="maint_toggle" onclick="toggleSwitch('maint_toggle','maintenance')"></div>
+      <input type="hidden" id="maintenance" value="{{ '1' if settings.maintenance else '0' }}">
+    </div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Announcement Banner</label><textarea class="form-control" id="announcement" rows="3" placeholder="Leave empty to hide">{{ settings.announcement }}</textarea></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px">🔄 Transfer Settings</div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">Transfers Enabled</span>
+      <div class="toggle {{ 'on' if settings.transfers_enabled else '' }}" id="transfers_toggle" onclick="toggleSwitch('transfers_toggle','transfers_enabled')"></div>
+      <input type="hidden" id="transfers_enabled" value="{{ '1' if settings.transfers_enabled else '0' }}">
+    </div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Minimum Transfer Amount (₦, 0=no limit)</label><input type="number" class="form-control" id="transfer_min" value="{{ settings.get('transfer_min',0)|int }}" min="0"></div>
+    <div class="form-group"><label class="form-label">Maximum Transfer Amount (₦, 0=no limit)</label><input type="number" class="form-control" id="transfer_max" value="{{ settings.get('transfer_max',1000000)|int }}" min="0"></div>
+    <div class="form-group"><label class="form-label">Daily Transfer Limit per User (₦, 0=unlimited)</label><input type="number" class="form-control" id="transfer_daily_limit" value="{{ settings.get('transfer_daily_limit',0)|int }}" min="0"></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px">🔐 Security Settings</div>
+    <div class="form-group"><label class="form-label">Max Login Attempts Before Lockout (0=disabled)</label><input type="number" class="form-control" id="login_attempt_limit" value="{{ settings.get('login_attempt_limit',5)|int }}" min="0"><div style="font-size:11px;color:#888;margin-top:4px">After this many failed attempts, account is locked for 15 minutes</div></div>
+    <div class="form-group"><label class="form-label">Telegram Support Username</label><input type="text" class="form-control" id="telegram_support_username" value="{{ settings.get('telegram_support_username','socialpaysupport') }}" placeholder="socialpaysupport"><div style="font-size:11px;color:#888;margin-top:4px">Without the @ sign. Used for Forgot Password redirect.</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px">🎮 v9 Features</div>
+    <div class="toggle-wrap">
+      <span class="toggle-label">🎰 Jackpot Pool Enabled</span>
+      <div class="toggle {{ 'on' if settings.get('jackpot_enabled') else '' }}" id="jackpot_toggle" onclick="toggleSwitch('jackpot_toggle','jackpot_enabled')"></div>
+      <input type="hidden" id="jackpot_enabled" value="{{ '1' if settings.get('jackpot_enabled') else '0' }}">
+    </div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Jackpot Contribution % per spin</label><input type="number" class="form-control" id="jackpot_contribution_pct" value="{{ settings.get('jackpot_contribution_pct',5)|float|int }}" min="0" max="50"></div>
+    <div class="form-group"><label class="form-label">Jackpot Trigger Streak (days)</label><input type="number" class="form-control" id="jackpot_trigger_streak" value="{{ settings.get('jackpot_trigger_streak',7)|int }}" min="1"></div>
+    <div class="form-group"><label class="form-label">🔥 Streak Bonus — 7 Days (₦)</label><input type="number" class="form-control" id="streak_bonus_7" value="{{ settings.get('streak_bonus_7',100)|float|int }}"></div>
+    <div class="form-group"><label class="form-label">Streak Bonus — 14 Days (₦)</label><input type="number" class="form-control" id="streak_bonus_14" value="{{ settings.get('streak_bonus_14',250)|float|int }}"></div>
+    <div class="form-group"><label class="form-label">Streak Bonus — 30 Days (₦)</label><input type="number" class="form-control" id="streak_bonus_30" value="{{ settings.get('streak_bonus_30',500)|float|int }}"></div>
+    <div class="toggle-wrap" style="margin-top:12px">
+      <span class="toggle-label">💬 In-App Chat Enabled</span>
+      <div class="toggle {{ 'on' if settings.get('in_app_chat_enabled') else '' }}" id="chat_toggle" onclick="toggleSwitch('chat_toggle','in_app_chat_enabled')"></div>
+      <input type="hidden" id="in_app_chat_enabled" value="{{ '1' if settings.get('in_app_chat_enabled') else '0' }}">
+    </div>
+    <div class="toggle-wrap" style="margin-top:12px">
+      <span class="toggle-label">🌙 Dark Mode for Users</span>
+      <div class="toggle {{ 'on' if settings.get('dark_mode_enabled') else '' }}" id="dark_toggle" onclick="toggleSwitch('dark_toggle','dark_mode_enabled')"></div>
+      <input type="hidden" id="dark_mode_enabled" value="{{ '1' if settings.get('dark_mode_enabled') else '0' }}">
+    </div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Withdrawal Auto-Approve Threshold ₦ (0=off)</label><input type="number" class="form-control" id="withdrawal_auto_approve_threshold" value="{{ settings.get('withdrawal_auto_approve_threshold',0)|float|int }}" min="0"></div>
+    <div class="form-group"><label class="form-label">Rate Limit: Max Spins/hour per user</label><input type="number" class="form-control" id="rate_limit_spin" value="{{ settings.get('rate_limit_spin',10)|int }}" min="1"></div>
+    <div class="form-group"><label class="form-label">Rate Limit: Max Transfers/hour per user</label><input type="number" class="form-control" id="rate_limit_transfer" value="{{ settings.get('rate_limit_transfer',20)|int }}" min="1"></div>
+    <div class="form-group"><label class="form-label">Rate Limit: Max Withdrawals/hour per user</label><input type="number" class="form-control" id="rate_limit_withdraw" value="{{ settings.get('rate_limit_withdraw',5)|int }}" min="1"></div>
+  </div>
+  <button class="btn btn-primary" id="save-btn" onclick="saveSettings()" style="width:100%;margin-bottom:20px">💾 Save All Settings</button>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+function toggleSwitch(toggleId, fieldId) {
+  const tog=document.getElementById(toggleId);
+  const inp=document.getElementById(fieldId);
+  tog.classList.toggle('on');
+  inp.value=tog.classList.contains('on')?'1':'0';
+}
+async function saveSettings() {
+  const fd=new FormData();
+  ['referral_bonus','referral_bonus_l2','referral_tasks_needed','withdrawal_fee_percent','min_withdrawal','max_withdrawal','exchange_rate','signup_reward_amount','daily_login_reward','transfer_min','transfer_max','transfer_daily_limit','login_attempt_limit'].forEach(k=>{
+    const el=document.getElementById(k); if(el) fd.append(k,el.value);
+  });
+  fd.append('site_name',document.getElementById('site_name').value);
+  fd.append('maintenance',document.getElementById('maintenance').value);
+  fd.append('announcement',document.getElementById('announcement').value);
+  fd.append('signup_reward_enabled',document.getElementById('signup_reward_enabled').value);
+  fd.append('daily_login_enabled',document.getElementById('daily_login_enabled').value);
+  fd.append('spin_enabled',document.getElementById('spin_enabled').value);
+  fd.append('transfers_enabled',document.getElementById('transfers_enabled').value);
+  const sc=document.getElementById('spin_cost'); if(sc) fd.append('spin_cost',sc.value);
+  const sdl=document.getElementById('spin_daily_limit'); if(sdl) fd.append('spin_daily_limit',sdl.value);
+  const sp=document.getElementById('spin_prizes'); if(sp) fd.append('spin_prizes',sp.value);
+  const tg=document.getElementById('telegram_support_username'); if(tg) fd.append('telegram_support_username',tg.value);
+  ['jackpot_enabled','in_app_chat_enabled','dark_mode_enabled'].forEach(k=>{const el=document.getElementById(k);if(el)fd.append(k,el.value);});
+  ['jackpot_contribution_pct','jackpot_trigger_streak','streak_bonus_7','streak_bonus_14','streak_bonus_30',
+   'withdrawal_auto_approve_threshold','rate_limit_spin','rate_limit_transfer','rate_limit_withdraw'].forEach(k=>{const el=document.getElementById(k);if(el)fd.append(k,el.value);});
+  await postForm('/admin/settings',fd,document.getElementById('save-btn'));
+}
+</script>
+</body>
+</html>

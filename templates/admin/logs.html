@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Logs - Admin | {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:11px;opacity:0.7">Admin</span></div>
+  <a href="/admin" style="color:white;font-size:13px;font-weight:700;text-decoration:none">← Dashboard</a>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item">👥 Users</a>
+  <a href="/admin/logs" class="admin-nav-item active">📋 Logs</a>
+  <a href="/admin/analytics" class="admin-nav-item">📈 Analytics</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content">
+  <div style="font-size:20px;font-weight:800;margin-bottom:16px">📋 Activity Logs</div>
+
+  <!-- Filters -->
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔍 Filter Logs</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div>
+        <label class="form-label" style="font-size:11px">Action</label>
+        <input type="text" class="form-control" id="f-action" value="{{ action_filter }}" placeholder="e.g. login, ban...">
+      </div>
+      <div>
+        <label class="form-label" style="font-size:11px">User ID</label>
+        <input type="text" class="form-control" id="f-user" value="{{ user_filter }}" placeholder="SPxxxxxxxx">
+      </div>
+      <div>
+        <label class="form-label" style="font-size:11px">Date</label>
+        <input type="date" class="form-control" id="f-date" value="{{ date_filter }}">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary btn-sm" onclick="applyLogFilter()">🔍 Filter</button>
+      <a href="/admin/logs" class="btn btn-outline btn-sm">✕ Clear</a>
+    </div>
+  </div>
+
+  {% if logs %}
+  <div class="card" style="padding:0">
+    <div style="padding:10px 16px;font-size:13px;font-weight:700;border-bottom:1px solid #f0f0f0">{{ logs|length }} records</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#f5f5f5">
+        <th style="padding:8px 12px;text-align:left">Action</th>
+        <th style="padding:8px 12px;text-align:left">User ID</th>
+        <th style="padding:8px 12px;text-align:left">Detail</th>
+        <th style="padding:8px 12px;text-align:right">Amount</th>
+        <th style="padding:8px 12px;text-align:left">Time</th>
+      </tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr style="border-bottom:1px solid #f9f9f9;{% if loop.index % 2 == 0 %}background:#fafafa{% endif %}">
+          <td style="padding:7px 12px">
+            <span style="background:{% if 'login' in log.action %}#EBF5FF{% elif 'ban' in log.action or 'reject' in log.action %}#fff0f0{% elif 'approve' in log.action %}#e8f8f0{% elif 'withdraw' in log.action %}#fff8e1{% else %}#f5f5f5{% endif %};padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700">{{ log.action }}</span>
+          </td>
+          <td style="padding:7px 12px;font-family:monospace;font-size:11px">
+            <a href="/admin/user/{{ log.user_id }}" style="color:var(--primary);text-decoration:none">{{ log.user_id }}</a>
+          </td>
+          <td style="padding:7px 12px;color:#555;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ log.detail or '—' }}</td>
+          <td style="padding:7px 12px;text-align:right;font-weight:700;color:{% if log.amount > 0 %}var(--green){% else %}var(--muted){% endif %}">{% if log.amount %}₦{{ "%.0f"|format(log.amount) }}{% else %}—{% endif %}</td>
+          <td style="padding:7px 12px;color:var(--muted);white-space:nowrap;font-size:11px">{{ log.time[:16].replace('T',' ') if log.time else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card" style="text-align:center;color:var(--muted);padding:30px">
+    <div style="font-size:32px;margin-bottom:8px">📋</div>
+    <div>No logs found{% if action_filter or user_filter or date_filter %} matching your filters{% endif %}.</div>
+  </div>
+  {% endif %}
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+function applyLogFilter(){
+  const a=document.getElementById('f-action').value;
+  const u=document.getElementById('f-user').value;
+  const d=document.getElementById('f-date').value;
+  let url='/admin/logs?';
+  if(a) url+='action='+encodeURIComponent(a)+'&';
+  if(u) url+='user_id='+encodeURIComponent(u)+'&';
+  if(d) url+='date='+encodeURIComponent(d)+'&';
+  location.href=url.replace(/[&?]$/,'');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Detail - Admin | {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="admin-header">
+  <div class="admin-logo">{{ get_app_name() }} <span style="font-size:12px;opacity:0.7">Admin</span></div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <a href="/admin/users" style="color:rgba(255,255,255,0.8);font-size:13px;font-weight:700;text-decoration:none">← Users</a>
+    <a href="/logout" style="color:rgba(255,255,255,0.5);font-size:12px;text-decoration:none">Logout</a>
+  </div>
+</div>
+<nav class="admin-nav">
+  <a href="/admin" class="admin-nav-item">📊 Dashboard</a>
+  <a href="/admin/users" class="admin-nav-item active">👥 Users</a>
+  <a href="/admin/tasks" class="admin-nav-item">📋 Tasks</a>
+  <a href="/admin/submissions" class="admin-nav-item">📝 Submissions</a>
+  <a href="/admin/withdrawals" class="admin-nav-item">💸 Withdrawals</a>
+  <a href="/admin/support" class="admin-nav-item">🎫 Support</a>
+  <a href="/admin/settings" class="admin-nav-item">⚙️ Settings</a>
+</nav>
+<div class="admin-content" style="padding-top:20px">
+
+  <!-- USER PROFILE CARD -->
+  <div class="card" style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:white;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:60px;height:60px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800">{{ user.name[0]|upper }}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800">{{ user.name }}</div>
+        <div style="opacity:0.8;font-size:13px">{{ user.email }}</div>
+        <div style="font-size:11px;opacity:0.65;margin-top:3px">ID: {{ user_id }}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      {% if user.banned %}<span class="badge" style="background:rgba(239,35,60,0.4);color:white">⛔ Banned</span>
+      {% else %}<span class="badge" style="background:rgba(6,214,160,0.3);color:white">✅ Active</span>{% endif %}
+      {% if user.is_admin %}<span class="badge" style="background:rgba(255,209,102,0.3);color:white">👑 {{ user.get('role','admin')|title }}</span>{% endif %}
+      {% if user.verified %}<span class="badge" style="background:rgba(62,146,204,0.3);color:white">✓ Verified</span>{% endif %}
+      <span class="badge" style="background:rgba(255,255,255,0.1);color:white">🌐 Lang: {{ user.lang or 'en' }}</span>
+    </div>
+  </div>
+
+  <!-- WALLET STATS -->
+  <div class="admin-stats" style="margin-bottom:16px">
+    <div class="admin-stat-card"><div class="admin-stat-val" style="color:var(--green)">₦{{ "%.2f"|format(wallet.get('naira',0)) }}</div><div class="admin-stat-lbl">Naira</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val">${{ "%.4f"|format(wallet.get('dollar',0)) }}</div><div class="admin-stat-lbl">Dollar</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val">{{ wallet.get('completed_tasks',0) }}</div><div class="admin-stat-lbl">Tasks Done</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val">₦{{ "%.0f"|format(wallet.get('total_earned',0)) }}</div><div class="admin-stat-lbl">Total Earned</div></div>
+  </div>
+
+  <!-- FIX #1: CREDENTIALS SECTION (Admin visibility) -->
+  <div class="card" style="margin-bottom:16px;border:2px solid rgba(255,165,0,0.3)">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px;color:var(--orange)">🔑 User Credentials (Admin View)</div>
+    <div style="background:var(--bg);border-radius:12px;padding:12px;font-size:13px;line-height:2.2">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:6px">
+        <span style="color:var(--muted);font-weight:700">📧 Email</span>
+        <span style="font-weight:700">{{ user.email }}</span>
+      </div>
+      {% if my_role == 'super_admin' %}
+      <div style="border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:6px">
+        <div style="color:var(--muted);font-weight:700;margin-bottom:4px">🔑 Password Hash (Super Admin)</div>
+        <div style="font-size:10px;font-family:monospace;background:#fff3cd;padding:6px;border-radius:6px;word-break:break-all;color:#856404">{{ user.password }}</div>
+      </div>
+      <div style="border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:6px">
+        <div style="color:var(--muted);font-weight:700;margin-bottom:4px">🔐 PIN Hash (Super Admin)</div>
+        {% if pin_row %}
+        <div style="font-size:10px;font-family:monospace;background:#fff3cd;padding:6px;border-radius:6px;word-break:break-all;color:#856404">{{ pin_row.pin_hash }}</div>
+        {% else %}
+        <span style="color:var(--muted)">❌ No PIN set</span>
+        {% endif %}
+      </div>
+      {% else %}
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:6px">
+        <span style="color:var(--muted);font-weight:700">🔐 PIN</span>
+        <span>{% if has_pin %}<span style="color:var(--green);font-weight:700">✅ Set</span>{% else %}<span style="color:var(--muted)">❌ Not set</span>{% endif %}</span>
+      </div>
+      {% endif %}
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:6px">
+        <span style="color:var(--muted);font-weight:700">📅 Joined</span>
+        <span>{{ user.created[:10] if user.created else '—' }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="color:var(--muted);font-weight:700">🕐 Last Login</span>
+        <span>{{ user.last_login[:16].replace('T',' ') if user.last_login else '—' }}</span>
+      </div>
+    </div>
+    <!-- Bank Details with Admin Edit/Delete -->
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 6px">🏦 Bank / Payment Details</div>
+    {% if bank and bank.bank_name %}
+    <div style="background:var(--bg);border-radius:12px;padding:12px;font-size:13px;line-height:2">
+      <div><span style="color:var(--muted);font-weight:700">Type:</span> {{ bank.type|title }}</div>
+      <div><span style="color:var(--muted);font-weight:700">Bank:</span> {{ bank.bank_name }}</div>
+      <div><span style="color:var(--muted);font-weight:700">Account No:</span> <strong>{{ bank.account_number }}</strong></div>
+      <div><span style="color:var(--muted);font-weight:700">Account Name:</span> {{ bank.account_name }}</div>
+      {% if bank.updated %}<div><span style="color:var(--muted);font-weight:700">Updated:</span> {{ bank.updated[:10] }}</div>{% endif %}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-outline btn-sm" onclick="toggleBankEditForm()">✏️ Edit Bank</button>
+      <button class="btn btn-danger btn-sm" onclick="doAction('delete_bank')">🗑️ Delete Bank</button>
+    </div>
+    {% else %}
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px">No bank details saved yet.</div>
+    {% endif %}
+    <div id="bank-edit-form" style="display:none;margin-top:12px;background:#f9f9f9;border-radius:12px;padding:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Edit Bank Details</div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select class="form-control" id="adm-bank-type">
+          <option value="bank">Bank</option><option value="opay">OPay</option><option value="palmpay">PalmPay</option>
+          <option value="kuda">Kuda</option><option value="moniepoint">Moniepoint</option><option value="usdt">USDT/Crypto</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Bank Name</label><input type="text" class="form-control" id="adm-bank-name" value="{{ bank.bank_name if bank else '' }}"></div>
+      <div class="form-group"><label class="form-label">Account Number</label><input type="text" class="form-control" id="adm-bank-num" value="{{ bank.account_number if bank else '' }}" inputmode="numeric"></div>
+      <div class="form-group"><label class="form-label">Account Name</label><input type="text" class="form-control" id="adm-bank-aname" value="{{ bank.account_name if bank else '' }}"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-success btn-sm" onclick="saveBankAdmin()" style="flex:1">💾 Save</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleBankEditForm()" style="flex:1">Cancel</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn btn-warning btn-sm" onclick="doAction('reset_pin')">🔐 Reset PIN</button>
+    </div>
+    <!-- Tracking Info -->
+    {% if tracking %}
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin:14px 0 6px">📍 Recent Login Tracking</div>
+    <div style="background:var(--bg);border-radius:10px;padding:10px;font-size:11px">
+      {% for tr in tracking %}
+      <div style="border-bottom:1px solid #eee;padding:5px 0;{% if loop.last %}border:none{% endif %}">
+        <span style="font-weight:700">{{ tr.ip_address or '—' }}</span>
+        {% if tr.country %} • {{ tr.city or '' }}{% if tr.city %}, {% endif %}{{ tr.country }}{% endif %}
+        <div style="color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ tr.device_info[:80] if tr.device_info else '—' }}</div>
+        <div style="color:var(--muted)">{{ tr.time[:16].replace('T',' ') if tr.time else '' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">⚡ Quick Actions</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      {% if not user.banned %}
+      <button class="btn btn-danger btn-sm" onclick="doAction('ban')">⛔ Ban User</button>
+      {% else %}
+      <button class="btn btn-success btn-sm" onclick="doAction('unban')">✅ Unban User</button>
+      {% endif %}
+      <button class="btn btn-outline btn-sm" onclick="showMsgBox()">📩 Send Message</button>
+      {% if my_role=='super_admin' %}
+        {% if not user.is_admin %}
+        <button class="btn btn-warning btn-sm" onclick="doAction('make_admin')">👑 Make Admin</button>
+        {% elif user.get('role') != 'super_admin' %}
+        <button class="btn btn-outline btn-sm" onclick="doAction('remove_admin')">🚫 Remove Admin</button>
+        {% endif %}
+        {% if user.get('role') != 'super_admin' %}
+        <button class="btn btn-danger btn-sm" onclick="deleteUser()" style="border:2px dashed var(--red)">🗑️ Delete User</button>
+        {% endif %}
+      {% endif %}
+    </div>
+    <!-- Message box -->
+    <div id="msg-box" style="display:none;margin-top:12px">
+      <div class="form-group"><input type="text" class="form-control" id="msg-inp" placeholder="Type your message..."></div>
+      <button class="btn btn-outline btn-sm" onclick="sendMsg()">Send Message</button>
+    </div>
+  </div>
+
+  <!-- ADJUST BALANCE -->
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">💰 Adjust Balance</div>
+    <div class="form-group"><label class="form-label">Currency</label>
+      <select class="form-control" id="adj-curr"><option value="naira">Naira (₦)</option><option value="dollar">Dollar ($)</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Mode</label>
+      <select class="form-control" id="adj-mode"><option value="add">Add</option><option value="deduct">Deduct</option><option value="set">Set Exact</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Amount</label><input type="number" class="form-control" id="adj-amt" placeholder="0.00"></div>
+    <button class="btn btn-primary btn-sm" onclick="adjustBalance()">Apply Balance Change</button>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  {% if transactions %}
+  <div style="font-size:14px;font-weight:800;margin-bottom:10px">💳 Recent Transactions</div>
+  <div class="card" style="padding:0;margin-bottom:16px">
+    {% for tx in transactions %}
+    <div class="tx-item">
+      <div class="tx-icon {{ tx.type }}">{{ '💚' if tx.type=='credit' else '🔴' }}</div>
+      <div class="tx-info"><div class="tx-desc">{{ tx.description }}</div><div class="tx-time">{{ tx.time[:16].replace('T',' ') }}</div></div>
+      <div class="tx-amount {{ tx.type }}">{{ '+' if tx.type=='credit' else '-' }}₦{{ "%.2f"|format(tx.amount) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- SUBMISSIONS -->
+  {% if submissions %}
+  <div style="font-size:14px;font-weight:800;margin-bottom:10px">📝 Recent Submissions</div>
+  <div class="card" style="padding:0;margin-bottom:16px">
+    {% for s in submissions %}
+    <div class="list-item" style="cursor:default">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">{{ s.task_title or s.task_id }}</div>
+        <div style="font-size:11px;color:var(--muted)">{{ s.submitted_at[:10] if s.submitted_at else '' }}</div>
+      </div>
+      <span class="badge {% if s.status=='approved' %}badge-success{% elif s.status=='rejected' %}badge-error{% else %}badge-warning{% endif %}">{{ s.status }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+const USER_ID = '{{ user_id }}';
+function showMsgBox(){const b=document.getElementById('msg-box');b.style.display=b.style.display==='none'?'':'none';}
+function toggleBankEditForm(){const f=document.getElementById('bank-edit-form');f.style.display=f.style.display==='none'?'block':'none';}
+async function doAction(action) {
+  if(action==='delete_user'&&!confirm('⚠️ DELETE this user permanently?')) return;
+  if(action==='delete_bank'&&!confirm('Delete this user\'s bank details?')) return;
+  const fd=new FormData(); fd.append('action',action); fd.append('user_id',USER_ID);
+  const r=await postForm('/admin/user/action',fd,null);
+  if(r?.success) setTimeout(()=>action==='delete_user'?location.href='/admin/users':location.reload(),1200);
+}
+async function adjustBalance() {
+  const fd=new FormData(); fd.append('action','adjust_balance'); fd.append('user_id',USER_ID);
+  fd.append('currency',document.getElementById('adj-curr').value);
+  fd.append('mode',document.getElementById('adj-mode').value);
+  fd.append('amount',document.getElementById('adj-amt').value);
+  const r=await postForm('/admin/user/action',fd,null);
+  if(r?.success) setTimeout(()=>location.reload(),1200);
+}
+async function sendMsg() {
+  const msg=document.getElementById('msg-inp').value.trim(); if(!msg) return;
+  const fd=new FormData(); fd.append('action','message'); fd.append('user_id',USER_ID); fd.append('message',msg);
+  const r=await postForm('/admin/user/action',fd,null);
+  if(r?.success){document.getElementById('msg-inp').value='';showMsgBox();}
+}
+async function saveBankAdmin() {
+  const fd=new FormData();
+  fd.append('action','edit_bank'); fd.append('user_id',USER_ID);
+  fd.append('type',document.getElementById('adm-bank-type').value);
+  fd.append('bank_name',document.getElementById('adm-bank-name').value);
+  fd.append('account_number',document.getElementById('adm-bank-num').value);
+  fd.append('account_name',document.getElementById('adm-bank-aname').value);
+  const r=await postForm('/admin/user/action',fd,null);
+  if(r?.success) setTimeout(()=>location.reload(),1200);
+}
+async function deleteUser() {
+  if(!confirm('⚠️ DELETE this user and ALL their data permanently?')) return;
+  const fd=new FormData(); fd.append('action','delete_user'); fd.append('user_id',USER_ID);
+  const r=await postForm('/admin/user/action',fd,null);
+  if(r?.success) setTimeout(()=>location.href='/admin/users',800);
+}
+</script>
+</body>
+</html>

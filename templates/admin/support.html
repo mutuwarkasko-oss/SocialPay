@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+    <title>Support Tickets - { get_app_name() }</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .ticket-wrap{background:white;border-radius:18px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 16px rgba(10,36,99,.1)}
+    .ticket-head{background:linear-gradient(135deg,#1a0533,#3d0d6b);padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+    .ticket-head-info{flex:1}
+    .ticket-user{font-size:15px;font-weight:800;color:white}
+    .ticket-email{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px}
+    .ticket-time{font-size:11px;color:rgba(255,255,255,.6);margin-top:4px}
+    .ticket-cat{display:inline-block;background:rgba(255,255,255,.2);color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:6px}
+    .status-badge{font-size:11px;font-weight:800;padding:5px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+    .status-open{background:#06D6A0;color:white}
+    .status-closed{background:rgba(255,255,255,.2);color:white}
+    .ticket-subject{font-size:14px;font-weight:800;padding:14px 16px 0;color:#1a0533}
+    .ticket-body{padding:10px 16px 14px}
+    .msg-original{background:#F0F4FF;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.7;color:#374151;margin-bottom:12px;border-left:3px solid #3d0d6b}
+    .msg-label{font-size:11px;font-weight:800;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .thread{margin-bottom:14px}
+    .bubble{border-radius:14px;padding:11px 14px;margin-bottom:8px;font-size:13px;line-height:1.6;position:relative}
+    .bubble-user{background:#EEF2FF;margin-right:24px;border-bottom-left-radius:4px}
+    .bubble-admin{background:linear-gradient(135deg,#1a0533,#3d0d6b);color:white;margin-left:24px;border-bottom-right-radius:4px}
+    .bubble-meta{font-size:11px;margin-bottom:5px;font-weight:700;opacity:.75}
+    .reply-area{border-top:1px solid #F0F4FF;padding:14px 16px}
+    .reply-input{width:100%;border:2px solid #E5E7EB;border-radius:12px;padding:10px 14px;font-size:13px;font-family:inherit;resize:none;outline:none;transition:border .2s;box-sizing:border-box}
+    .reply-input:focus{border-color:#3d0d6b}
+    .reply-actions{display:flex;gap:8px;margin-top:10px}
+    .empty-tickets{text-align:center;padding:60px 20px}
+    .empty-tickets .ico{font-size:56px;margin-bottom:12px}
+    .empty-tickets .ttl{font-size:18px;font-weight:800;color:#374151}
+    .empty-tickets .sub{font-size:13px;color:#9CA3AF;margin-top:6px}
+    .unread-dot{width:10px;height:10px;background:#EF233C;border-radius:50%;display:inline-block;margin-left:6px;flex-shrink:0}
+  </style>
+</head>
+<body>
+
+<div class="page-header" style="background:linear-gradient(135deg,#1a0533,#3d0d6b)">
+  <a href="/admin" class="back-btn" style="background:rgba(255,255,255,0.15)">←</a>
+  <div class="page-title-wrap">
+    <div class="page-title">🎫 Support Tickets</div>
+    <div class="page-subtitle">{{ tickets|length }} {{ status }} tickets</div>
+  </div>
+</div>
+
+<div class="status-tabs">
+  <a href="?status=open"   class="status-tab {{ 'active' if status=='open' else '' }}">🟢 Open</a>
+  <a href="?status=closed" class="status-tab {{ 'active' if status=='closed' else '' }}">⚫ Closed</a>
+</div>
+
+<div style="padding:14px 14px 80px;background:#F0F4FF;min-height:calc(100vh - 110px)">
+
+{% if tickets %}
+{% for tk in tickets %}
+<div class="ticket-wrap">
+
+  <!-- HEADER: user info + status -->
+  <div class="ticket-head">
+    <div class="ticket-head-info">
+      <div class="ticket-user">👤 {{ tk.user_name }}</div>
+      <div class="ticket-email">{{ tk.user_email }}</div>
+      <div class="ticket-time">📅 {{ tk.created[:16] if tk.created else '' }}</div>
+      <span class="ticket-cat">{{ tk.category }}</span>
+    </div>
+    <span class="status-badge {{ 'status-open' if tk.status=='open' else 'status-closed' }}">
+      {{ '🟢 Open' if tk.status=='open' else '⚫ Closed' }}
+    </span>
+  </div>
+
+  <!-- SUBJECT -->
+  <div class="ticket-subject">📌 {{ tk.subject }}</div>
+
+  <!-- BODY: original message + thread -->
+  <div class="ticket-body">
+
+    <!-- Original user message -->
+    <div class="msg-label">
+      <span>💬 User Message</span>
+    </div>
+    <div class="msg-original">{{ tk.message }}</div>
+
+    <!-- Replies thread -->
+    {% if tk.replies %}
+    <div class="thread">
+      <div class="msg-label" style="margin-bottom:10px">🔄 Conversation Thread</div>
+      {% for rep in tk.replies %}
+      <div class="bubble {{ 'bubble-admin' if rep.from=='admin' else 'bubble-user' }}">
+        <div class="bubble-meta">
+          {% if rep.from == 'admin' %}
+            👑 You (Admin)
+          {% else %}
+            👤 {{ tk.user_name }}
+          {% endif %}
+          • {{ rep.time[:16] if rep.time else '' }}
+        </div>
+        {{ rep.message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- REPLY AREA -->
+  <div class="reply-area">
+    <div class="msg-label" style="margin-bottom:8px">✏️ Reply to {{ tk.user_name }}</div>
+    <textarea class="reply-input" id="arep-{{ tk.id }}" rows="3"
+              placeholder="Type your reply here..."></textarea>
+    <div class="reply-actions">
+      <button class="btn btn-primary btn-sm btn-icon" style="flex:2"
+              id="arepbtn-{{ tk.id }}"
+              onclick="adminReply('{{ tk.id }}', 'reply')">
+        💬 Send Reply
+      </button>
+      {% if tk.status == 'open' %}
+      <button class="btn btn-sm btn-icon" style="flex:1;background:#06D6A0;color:white"
+              onclick="adminReply('{{ tk.id }}', 'close')">
+        ✅ Close
+      </button>
+      {% else %}
+      <button class="btn btn-outline btn-sm btn-icon" style="flex:1"
+              onclick="adminReply('{{ tk.id }}', 'open')">
+        🔄 Reopen
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endfor %}
+
+{% else %}
+<div class="empty-tickets">
+  <div class="ico">🎫</div>
+  <div class="ttl">No {{ status }} tickets</div>
+  <div class="sub">
+    {% if status == 'open' %}
+    All caught up! No pending support requests.
+    {% else %}
+    No closed tickets yet.
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+async function adminReply(tid, action) {
+  const msg = document.getElementById(`arep-${tid}`)?.value.trim();
+  if (action === 'reply' && !msg) {
+    showToast('Type a reply message first', 'warning');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('message', msg || '');
+  fd.append('action', action);
+  const btn = document.getElementById(`arepbtn-${tid}`);
+  const r = await postForm(`/admin/support/reply/${tid}`, fd, btn);
+  if (r?.success) {
+    showToast('Done!', 'success');
+    setTimeout(() => location.reload(), 900);
+  }
+}
+</script>
+</body>
+</html>
