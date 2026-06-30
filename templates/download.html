@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SocialPay">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Download {{ app_name }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    body { background: linear-gradient(135deg, #0A2463 0%, #1B4FD8 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .dl-card { background: white; border-radius: 28px; padding: 36px 28px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+    .app-icon { width: 96px; height: 96px; background: linear-gradient(135deg, #0A2463, #1B4FD8); border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 48px; margin: 0 auto 18px; box-shadow: 0 8px 24px rgba(10,36,99,0.3); }
+    .app-name { font-size: 28px; font-weight: 900; color: #0A2463; margin-bottom: 6px; }
+    .app-tagline { font-size: 14px; color: #666; margin-bottom: 28px; line-height: 1.5; }
+    .install-btn { display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #0A2463, #1B4FD8); color: white; border: none; border-radius: 16px; padding: 16px 28px; font-size: 16px; font-weight: 800; width: 100%; cursor: pointer; margin-bottom: 12px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 6px 20px rgba(10,36,99,0.35); }
+    .install-btn:active { transform: scale(0.97); }
+    .install-btn.secondary { background: linear-gradient(135deg, #06d6a0, #0aab80); }
+    .install-btn.outline { background: white; color: #0A2463; border: 2px solid #0A2463; box-shadow: none; }
+    .steps { background: #f8f9ff; border-radius: 16px; padding: 18px; margin: 20px 0; text-align: left; }
+    .steps-title { font-size: 13px; font-weight: 800; color: #0A2463; margin-bottom: 12px; }
+    .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; color: #333; }
+    .step-num { width: 24px; height: 24px; background: #0A2463; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+    .browser-badge { display: inline-flex; align-items: center; gap: 6px; background: #e8f0fe; color: #0A2463; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 700; margin: 4px; }
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+    .feature { background: #f8f9ff; border-radius: 12px; padding: 12px 10px; font-size: 12px; color: #333; font-weight: 600; }
+    .feature span { display: block; font-size: 22px; margin-bottom: 4px; }
+    .divider { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+    #install-btn-native { display: none; }
+    .already-login { font-size: 13px; color: #888; margin-top: 16px; }
+    .already-login a { color: #0A2463; font-weight: 700; text-decoration: none; }
+    /* iOS specific instructions */
+    #ios-guide { display: none; }
+    #android-guide { display: none; }
+  </style>
+</head>
+<body>
+  <div class="dl-card">
+    <div class="app-icon">💰</div>
+    <div class="app-name">{{ app_name }}</div>
+    <div class="app-tagline">Earn Money via Social Media Tasks<br>Fast & Easy Payouts</div>
+
+    <!-- Native install button (shown only when browser supports it) -->
+    <button class="install-btn" id="install-btn-native" onclick="triggerInstall()">
+      📲 Install App — Free
+    </button>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="feature"><span>🏆</span>Earn Real Money</div>
+      <div class="feature"><span>⚡</span>Instant Rewards</div>
+      <div class="feature"><span>🔒</span>Secure & Safe</div>
+      <div class="feature"><span>📱</span>Works Offline</div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- iOS Instructions -->
+    <div id="ios-guide">
+      <div class="steps">
+        <div class="steps-title">📱 Install on iPhone / iPad</div>
+        <div class="step"><div class="step-num">1</div><div>Tap the <strong>Share</strong> button <strong>⬆</strong> at the bottom of Safari</div></div>
+        <div class="step"><div class="step-num">2</div><div>Scroll down and tap <strong>"Add to Home Screen"</strong></div></div>
+        <div class="step"><div class="step-num">3</div><div>Tap <strong>"Add"</strong> — the app icon will appear on your home screen!</div></div>
+      </div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px">⚠️ Must use <strong>Safari</strong> browser on iOS</div>
+    </div>
+
+    <!-- Android Instructions -->
+    <div id="android-guide">
+      <div class="steps">
+        <div class="steps-title">📱 Install on Android</div>
+        <div class="step"><div class="step-num">1</div><div>Tap the <strong>⋮ Menu</strong> (3 dots) at the top right of Chrome</div></div>
+        <div class="step"><div class="step-num">2</div><div>Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></div></div>
+        <div class="step"><div class="step-num">3</div><div>Tap <strong>"Install"</strong> — app icon appears on your home screen!</div></div>
+      </div>
+    </div>
+
+    <!-- Generic fallback instructions -->
+    <div id="generic-guide">
+      <div class="steps">
+        <div class="steps-title">📲 How to Install</div>
+        <div class="step"><div class="step-num">1</div><div>Open this page in your phone browser (Chrome / Safari)</div></div>
+        <div class="step"><div class="step-num">2</div><div>Tap browser menu → <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong></div></div>
+        <div class="step"><div class="step-num">3</div><div>Tap <strong>Install / Add</strong> — done! Open like any app.</div></div>
+      </div>
+    </div>
+
+    <a href="/login" class="install-btn outline" style="margin-top:8px">
+      🌐 Open in Browser Instead
+    </a>
+
+    <div class="already-login">
+      Already have an account? <a href="/login">Login here</a>
+    </div>
+  </div>
+
+  <script>
+    // Detect platform and show relevant guide
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isAndroid = /Android/.test(ua);
+
+    if (isIOS) {
+      document.getElementById('ios-guide').style.display = 'block';
+      document.getElementById('generic-guide').style.display = 'none';
+    } else if (isAndroid) {
+      document.getElementById('android-guide').style.display = 'block';
+      document.getElementById('generic-guide').style.display = 'none';
+    }
+
+    // PWA beforeinstallprompt (Chrome/Android)
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('install-btn-native');
+      btn.style.display = 'flex';
+      // Hide the manual Android guide since we can do native install
+      document.getElementById('android-guide').style.display = 'none';
+      document.getElementById('generic-guide').style.display = 'none';
+    });
+
+    async function triggerInstall() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (outcome === 'accepted') {
+        document.getElementById('install-btn-native').textContent = '✅ Installing...';
+        setTimeout(() => { window.location.href = '/login'; }, 2000);
+      }
+    }
+
+    // If already installed as PWA, redirect to login
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      window.location.href = '/login';
+    }
+  </script>
+</body>
+</html>

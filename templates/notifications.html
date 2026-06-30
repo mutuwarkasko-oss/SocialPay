@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <title>{{ t('notifications') }} - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SocialPay">
+  <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+<div class="page-header">
+  <a href="/dashboard" class="back-btn">←</a>
+  <div class="page-title-wrap"><div class="page-title">🔔 {{ t('notifications') }}</div></div>
+</div>
+<div class="page-content" style="padding:14px 14px 90px">
+  {% if admin_messages %}
+  <div style="font-size:13px;font-weight:800;color:var(--primary);margin-bottom:10px">📩 Messages from Admin</div>
+  <div class="card" style="padding:0;margin-bottom:16px">
+    {% for m in admin_messages %}
+    <div class="notif-item" style="{% if not m.read %}background:#EBF5FF{% endif %}">
+      <div class="notif-dot info">📩</div>
+      <div class="notif-content" style="flex:1">
+        <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:4px">📩 From Admin</div>
+        {% if m.message %}<div class="notif-msg" style="white-space:pre-wrap">{{ m.message }}</div>{% endif %}
+        {% if m.image %}<img src="{{ m.image }}" style="max-width:100%;border-radius:10px;margin-top:8px" onerror="this.style.display='none'">{% endif %}
+        <div class="notif-time">{{ m.time[:16].replace('T',' ') if m.time else '' }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if notifications %}
+  {% if admin_messages %}<div style="font-size:13px;font-weight:800;color:var(--muted);margin-bottom:10px">🔔 System Notifications</div>{% endif %}
+  <div class="card" style="padding:0">
+    {% for n in notifications %}
+    <div class="notif-item {{ 'unread' if not n.read else '' }}">
+      <div class="notif-dot {{ n.type }}">
+        {% if n.type=='success' %}✅{% elif n.type=='error' %}❌{% elif n.type=='warning' %}⚠️{% else %}ℹ️{% endif %}
+      </div>
+      <div class="notif-content" style="flex:1">
+        <div class="notif-msg">{{ n.message }}</div>
+        {% if n.image %}<img src="{{ n.image }}" style="max-width:100%;border-radius:10px;margin-top:6px" onerror="this.style.display='none'">{% endif %}
+        <div class="notif-time">{{ n.time[:16].replace('T',' ') }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% elif not admin_messages %}
+  <div class="empty-state">
+    <div class="empty-icon">🔔</div>
+    <div class="empty-title">{{ t('no_notifications') }}</div>
+    <div class="empty-desc">Your notifications will appear here.</div>
+  </div>
+  {% endif %}
+</div>
+<nav class="bottom-nav">
+  <a href="/dashboard" class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></a>
+  <a href="/tasks" class="nav-item"><span class="nav-icon">📋</span><span>Tasks</span></a>
+  <div class="nav-center-wrap"><a href="/balance" class="nav-center">💰</a></div>
+  <a href="/referrals" class="nav-item"><span class="nav-icon">👥</span><span>Referrals</span></a>
+  <a href="/profile" class="nav-item"><span class="nav-icon">👤</span><span>Profile</span></a>
+</nav>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

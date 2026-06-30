@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#EF233C">
+  <title>Account Banned - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .banned-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:linear-gradient(135deg,#1a0010,#4a0020);text-align:center;color:white}
+    .banned-icon{font-size:80px;margin-bottom:24px}
+    .banned-title{font-size:26px;font-weight:900;margin-bottom:12px;color:#ff6b6b}
+    .banned-msg{font-size:15px;opacity:0.85;line-height:1.7;max-width:320px;margin:0 auto 32px}
+    .banned-actions{display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px}
+  </style>
+</head>
+<body>
+<div class="banned-wrap">
+  <div class="banned-icon">⛔</div>
+  <div class="banned-title">Account Banned</div>
+  <div class="banned-msg">
+    Your account has been suspended. Please contact our support team or open a ticket to appeal this decision.
+  </div>
+  <div class="banned-actions">
+    <a href="https://t.me/socialpaysupport" target="_blank" class="btn btn-danger btn-icon">
+      📞 Contact Support (@socialpaysupport)
+    </a>
+    <a href="/support" class="btn btn-outline" style="border-color:rgba(255,255,255,0.4);color:white">
+      🎫 Open a Ticket
+    </a>
+    <a href="/logout" class="btn btn-outline" style="border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-size:13px;margin-top:8px">
+      🚪 Logout
+    </a>
+  </div>
+</div>
+</body>
+</html>

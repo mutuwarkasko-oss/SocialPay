@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <title>Under Maintenance - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .maint-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:linear-gradient(135deg,#0A2463,#1a6b3c);text-align:center;color:white}
+    .maint-icon{font-size:80px;margin-bottom:24px;animation:pulse 2s infinite}
+    .maint-title{font-size:26px;font-weight:900;margin-bottom:12px}
+    .maint-msg{font-size:15px;opacity:0.85;line-height:1.7;max-width:320px;margin:0 auto 32px}
+    .maint-badge{background:rgba(255,255,255,0.15);border-radius:50px;padding:10px 24px;font-size:13px;font-weight:700;display:inline-block;margin-bottom:24px}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+    .maint-logout{color:rgba(255,255,255,0.6);font-size:13px;text-decoration:underline;cursor:pointer;margin-top:16px;display:inline-block}
+  </style>
+</head>
+<body>
+<div class="maint-wrap">
+  <div class="maint-icon">🔧</div>
+  <div class="maint-badge">🛠️ Maintenance Mode</div>
+  <div class="maint-title">We'll Be Right Back!</div>
+  <div class="maint-msg">
+    We are currently updating {{ get_app_name() }} to bring you a better experience.<br><br>
+    Please check back later. We apologize for any inconvenience.
+  </div>
+  <a href="https://t.me/socialpaysupport" target="_blank" class="btn btn-outline" style="border-color:rgba(255,255,255,0.5);color:white;margin-bottom:8px">
+    📞 Contact Support
+  </a>
+  <a href="/logout" class="maint-logout">Logout</a>
+</div>
+</body>
+</html>

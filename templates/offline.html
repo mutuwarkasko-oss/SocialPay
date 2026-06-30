@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ha">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A2463">
+  <title>SocialPay — Offline</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0A2463, #1a3a8f);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 28px;
+      padding: 44px 32px;
+      text-align: center;
+      max-width: 360px;
+      width: 92%;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .icon-wrap {
+      width: 100px;
+      height: 100px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin: 0 auto 24px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    h1 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+    .subtitle { opacity: 0.8; font-size: 14px; line-height: 1.6; margin-bottom: 6px; }
+    .divider { border-top: 1px solid rgba(255,255,255,0.15); margin: 20px 0; }
+    .tip-title { font-size: 12px; font-weight: 800; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .tip-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 7px; text-align: left; }
+    .tip-row.ok { opacity: 0.9; }
+    .tip-row.no { opacity: 0.5; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      margin-top: 14px;
+      transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-white { background: white; color: #0A2463; }
+    .btn-ghost { background: rgba(255,255,255,0.15); color: white; }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #EF233C;
+      display: inline-block;
+      animation: blink 1.5s ease-in-out infinite;
+      margin-right: 6px;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .connection-status { font-size: 12px; opacity: 0.7; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon-wrap">📵</div>
+  <h1>Babu Haɗin Intanet</h1>
+  <p class="subtitle">SocialPay yana nuna bayananku na ƙarshe a offline.</p>
+
+  <div class="connection-status">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Ana binciken haɗin...</span>
+  </div>
+
+  <button class="btn btn-white" onclick="history.back()">← Koma Baya</button>
+  <button class="btn btn-ghost" onclick="retryNow()">🔄 Sake Gwadawa</button>
+
+  <div class="divider"></div>
+
+  <div class="tip-title">Abin Da Za Ka Yi Offline</div>
+  <div class="tip-row ok"><span>✅</span><span>Duba Balance da Wallet</span></div>
+  <div class="tip-row ok"><span>✅</span><span>Ganin Tasks (an cache)</span></div>
+  <div class="tip-row ok"><span>✅</span><span>Tarihin Ma'amala</span></div>
+  <div class="tip-row ok"><span>✅</span><span>Profile da Bayananku</span></div>
+  <div class="tip-row ok"><span>✅</span><span>Notifications (an cache)</span></div>
+  <div class="tip-row no"><span>❌</span><span>Aika Task (yana bukatar net)</span></div>
+  <div class="tip-row no"><span>❌</span><span>Cire / Aika Kuɗi</span></div>
+  <div class="tip-row no"><span>❌</span><span>Spin & Win</span></div>
+</div>
+
+<script>
+// Check connection and auto-redirect when online
+let checkInterval;
+
+async function checkConnection() {
+  try {
+    const r = await fetch('/static/icons/icon-192.svg', { cache: 'no-store' });
+    if (r.ok) {
+      document.getElementById('status-dot').style.background = '#06D6A0';
+      document.getElementById('status-text').textContent = '✅ Haɗin ya dawo! Ana komawa...';
+      clearInterval(checkInterval);
+      setTimeout(() => {
+        const prev = document.referrer;
+        if (prev && !prev.includes('/offline')) {
+          location.href = prev;
+        } else {
+          location.href = '/dashboard';
+        }
+      }, 1200);
+    }
+  } catch {
+    document.getElementById('status-dot').style.background = '#EF233C';
+    document.getElementById('status-text').textContent = 'Har yanzu babu haɗin intanet';
+  }
+}
+
+async function retryNow() {
+  document.getElementById('status-text').textContent = 'Ana binciken haɗin...';
+  await checkConnection();
+}
+
+// Auto-check every 5 seconds
+checkInterval = setInterval(checkConnection, 5000);
+checkConnection(); // Check immediately
+
+// Also listen for browser online event
+window.addEventListener('online', () => {
+  document.getElementById('status-dot').style.background = '#06D6A0';
+  document.getElementById('status-text').textContent = '✅ Haɗin ya dawo! Ana komawa...';
+  setTimeout(() => location.href = '/dashboard', 1000);
+});
+</script>
+</body>
+</html>

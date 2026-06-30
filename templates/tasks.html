@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463"><link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SocialPay">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>{{ t('tasks') }} - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="page-header">
+  <a href="/dashboard" class="back-btn">←</a>
+  <div class="page-title-wrap">
+    <div class="page-title">📋 {{ t('available_tasks') }}</div>
+    <div class="page-subtitle">{{ tasks|length }} tasks available</div>
+  </div>
+</div>
+<div class="page-content" style="padding:14px 14px 90px">
+  {% if tasks %}
+    {% set icons = {'instagram':'📸','twitter':'🐦','x':'🐦','facebook':'👤','youtube':'▶️','tiktok':'🎵','telegram':'✈️','whatsapp':'📱','video':'🎬','link':'🔗','social':'🌟','other':'🌐'} %}
+    {% for task in tasks %}
+    <div class="task-card" onclick="openTaskModal('{{ task.id }}')">
+      <div class="task-icon plat-{{ task.platform|lower }}">{{ icons.get(task.platform|lower,'🌐') }}</div>
+      <div class="task-info">
+        <div class="task-title">{{ task.title }}</div>
+        <div class="task-plat">{{ task.platform|title }} • {{ task.task_type|replace('_',' ')|title }}</div>
+        <div class="task-reward">💰 {% if task.currency=='dollar' %}${{ "%.4f"|format(task.reward) }}{% else %}₦{{ "%.0f"|format(task.reward) }}{% endif %}</div>
+        {% if task.time_left %}<div style="font-size:10px;color:var(--orange);font-weight:700;margin-top:3px">⏰ Expires in {{ (task.time_left // 3600) }}h {{ ((task.time_left % 3600) // 60) }}m</div>{% endif %}
+        {% if task.auto_approve %}<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">⚡ Auto Approved</div>{% endif %}
+        {% if task.max_users == 1 %}<div style="font-size:10px;color:var(--orange);font-weight:700;margin-top:2px">⚠️ Limited: 1 slot</div>{% endif %}
+      </div>
+      <div class="task-slots">{{ task.max_users - task.completed_by|length }} left</div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">{{ t('no_tasks') }}</div>
+      <div class="empty-desc">{{ t('no_tasks_desc') }}</div>
+    </div>
+  {% endif %}
+</div>
+<nav class="bottom-nav">
+  <a href="/dashboard" class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></a>
+  <a href="/tasks" class="nav-item active"><span class="nav-icon">📋</span><span>{{ t('tasks') }}</span></a>
+  <div class="nav-center-wrap"><a href="/balance" class="nav-center">💰</a></div>
+  <a href="/referrals" class="nav-item"><span class="nav-icon">👥</span><span>{{ t('referrals') }}</span></a>
+  <a href="/profile" class="nav-item"><span class="nav-icon">👤</span><span>{{ t('profile') }}</span></a>
+</nav>
+
+<div class="modal-overlay" id="taskModal">
+  <div class="modal"><div class="modal-handle"></div><div id="task-modal-body"></div></div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+const TASKS = {{ tasks|tojson }};
+const ICONS = {instagram:'📸',twitter:'🐦',x:'🐦',facebook:'👤',youtube:'▶️',tiktok:'🎵',telegram:'✈️',whatsapp:'📱',video:'🎬',link:'🔗',social:'🌟',other:'🌐'};
+let currentScreenshot = '';
+
+function openTaskModal(tid) {
+  const task = TASKS.find(t=>t.id===tid); if(!task) return;
+  const icon = ICONS[task.platform?.toLowerCase()]||'🌐';
+  const rew = task.currency==='dollar'?`$${parseFloat(task.reward).toFixed(4)}`:`₦${parseFloat(task.reward).toFixed(0)}`;
+  const slots = task.max_users-(task.completed_by?.length||0);
+  currentScreenshot = '';
+  const timeLeft = task.time_left?`<div style="font-size:11px;color:var(--orange);font-weight:700;margin-top:6px">⏰ Expires in ${Math.floor(task.time_left/3600)}h ${Math.floor((task.time_left%3600)/60)}m</div>`:'';
+  const autoTag = task.auto_approve?`<div style="font-size:11px;color:var(--green);font-weight:700">⚡ Auto Approved instantly</div>`:'';
+  const limitTag = task.max_users===1?`<div style="font-size:11px;color:var(--orange);font-weight:700">⚠️ Limited slot — screenshot required</div>`:'';
+
+  document.getElementById('task-modal-body').innerHTML = `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="width:68px;height:68px;border-radius:20px;background:linear-gradient(135deg,var(--primary),var(--accent));display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:10px">${icon}</div>
+      <div style="font-size:17px;font-weight:800">${task.title}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:3px">${task.platform} • ${(task.task_type||'').replace(/_/g,' ')}</div>
+      ${timeLeft}${autoTag}${limitTag}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="card" style="background:linear-gradient(135deg,#E8F9F1,#D1FAE5);text-align:center;padding:12px">
+        <div style="font-size:11px;color:#065F46;font-weight:700">💰 Reward</div>
+        <div style="font-size:20px;font-weight:800;color:#065F46">${rew}</div>
+      </div>
+      <div class="card" style="background:#F0F4FF;text-align:center;padding:12px">
+        <div style="font-size:11px;color:var(--muted);font-weight:700">👥 Slots Left</div>
+        <div style="font-size:20px;font-weight:800">${slots}</div>
+      </div>
+    </div>
+    ${task.description?`<div class="card" style="background:#F9FAFB;margin-bottom:14px;padding:13px"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px">📝 Instructions</div><div style="font-size:13px;line-height:1.7">${task.description}</div></div>`:''}
+    ${task.link?`<a href="${task.link}" target="_blank" class="btn btn-outline btn-icon" style="margin-bottom:14px">🔗 Open Task Link</a>`:''}
+    <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📸 Upload Screenshot Proof</div>
+    <div class="upload-area" id="upload-area-${task.id}" onclick="document.getElementById('file-${task.id}').click()">
+      <input type="file" id="file-${task.id}" accept="image/*" onchange="handleScreenshot(this,'${task.id}')">
+      <div id="upload-placeholder-${task.id}">
+        <div style="font-size:36px;margin-bottom:8px">📸</div>
+        <div style="font-size:13px;font-weight:700;color:var(--muted)">Tap to upload screenshot</div>
+        <div style="font-size:11px;color:#bbb;margin-top:4px">JPG, PNG — Auto compressed</div>
+      </div>
+    </div>
+    <img id="preview-${task.id}" class="upload-preview" alt="Preview" style="display:none;width:100%;border-radius:12px;margin-top:8px;cursor:pointer" onclick="openImageFull(this.src)">
+    <div id="upload-progress-${task.id}" style="display:none;margin-top:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
+        <span>📤 Uploading...</span><span id="upload-pct-${task.id}">0%</span>
+      </div>
+      <div style="background:#eee;border-radius:8px;height:8px;overflow:hidden">
+        <div id="upload-bar-${task.id}" style="height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width 0.15s;border-radius:8px"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="sub-btn-${task.id}" onclick="submitTask('${task.id}')" style="margin-top:12px">✅ Submit Screenshot</button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="closeModal('taskModal')">Cancel</button>
+  `;
+  openModal('taskModal');
+}
+
+async function handleScreenshot(input, tid) {
+  const file = input.files[0]; if(!file) return;
+  const prog = document.getElementById(`upload-progress-${tid}`);
+  const bar = document.getElementById(`upload-bar-${tid}`);
+  const pct = document.getElementById(`upload-pct-${tid}`);
+  const placeholder = document.getElementById(`upload-placeholder-${tid}`);
+  if(prog) prog.style.display='block';
+
+  // Animate progress bar while reading + uploading
+  let p = 0;
+  const progressInterval = setInterval(() => {
+    if (p < 85) { p += Math.random() * 12 + 3; p = Math.min(p, 85); }
+    if(bar) bar.style.width = p + '%';
+    if(pct) pct.textContent = Math.round(p) + '%';
+  }, 120);
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    let imgData = e.target.result;
+    try {
+      const resp = await fetch('/upload_screenshot', {credentials:'same-origin',
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-Token': document.querySelector('meta[name="csrf"]')?.content || ''},
+        body: JSON.stringify({image: imgData})
+      });
+      const result = await resp.json();
+      clearInterval(progressInterval);
+      if(result.success) {
+        imgData = result.image;
+        if(bar) bar.style.width = '100%';
+        if(pct) pct.textContent = '100%';
+        setTimeout(() => { if(prog) prog.style.display='none'; }, 500);
+        showToast('Screenshot ready!','success');
+      } else {
+        clearInterval(progressInterval);
+        if(prog) prog.style.display='none';
+        showToast(result.message || 'Upload failed','warning');
+        return;
+      }
+    } catch(err) {
+      clearInterval(progressInterval);
+      if (imgData.length > 2*1024*1024) {
+        if(prog) prog.style.display='none';
+        showToast('Image too large. Please use a smaller screenshot.','warning');
+        return;
+      }
+      if(prog) prog.style.display='none';
+    }
+    currentScreenshot = imgData;
+    const prev = document.getElementById(`preview-${tid}`);
+    prev.src = imgData; prev.style.display='block';
+    if(placeholder) placeholder.style.display='none';
+    document.getElementById(`upload-area-${tid}`).classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitTask(tid) {
+  if(!currentScreenshot){showToast('Please upload a screenshot first','warning');return;}
+  const fd = new FormData();
+  fd.append('task_id', tid);
+  fd.append('proof', 'Screenshot submitted');
+  fd.append('screenshot', currentScreenshot);
+  const r = await postForm('/submit_task', fd, document.getElementById(`sub-btn-${tid}`));
+  if(r?.success){closeModal('taskModal');setTimeout(()=>location.reload(),1400);}
+}
+</script>
+</body>
+</html>

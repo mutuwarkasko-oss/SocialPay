@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <title>Support - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SocialPay">
+  <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+<div class="page-header">
+  <a href="/dashboard" class="back-btn">←</a>
+  <div class="page-title-wrap"><div class="page-title">🎫 Support</div><div class="page-subtitle">We're here to help</div></div>
+</div>
+<div class="page-content" style="padding:14px 14px 90px">
+
+  <!-- TELEGRAM SUPPORT -->
+  <div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#E8F9F1,#D1FAE5)">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px">📲 Quick Support via Telegram</div>
+    <a href="#" class="tg-btn tg-btn-support" onclick="openTelegram('tg://resolve?domain=socialpaysupport','{{ tg_support }}');return false" style="text-decoration:none">
+      <div class="tg-btn-icon">🎧</div>
+      <div class="tg-btn-text"><div class="tg-btn-label">Chat with Support Agent</div><div class="tg-btn-sub">Fastest response on Telegram</div></div>
+      <div class="tg-btn-arrow">›</div>
+    </a>
+  </div>
+
+  <!-- NEW TICKET -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px">📝 Submit a Ticket</div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-control" id="s-cat">
+        <option value="general">General</option>
+        <option value="payment">Payment / Withdrawal</option>
+        <option value="task">Task Issue</option>
+        <option value="account">Account Problem</option>
+        <option value="technical">Technical Issue</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Subject</label><input type="text" class="form-control" id="s-subj" placeholder="Brief description of your issue"></div>
+    <div class="form-group"><label class="form-label">Message</label><textarea class="form-control" id="s-msg" rows="4" placeholder="Describe your issue in detail..."></textarea></div>
+    <button class="btn btn-primary" id="s-btn" onclick="submitTicket()">📨 Submit Ticket</button>
+  </div>
+
+  <!-- MY TICKETS -->
+  {% if tickets %}
+  <div style="font-size:14px;font-weight:800;margin-bottom:10px">🎫 My Tickets ({{ tickets|length }})</div>
+  {% for ticket in tickets %}
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+      <div>
+        <div style="font-size:14px;font-weight:800">{{ ticket.subject }}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ ticket.category|title }} • {{ ticket.created[:10] }}</div>
+      </div>
+      <span class="badge {% if ticket.status=='open' %}badge-warning{% else %}badge-success{% endif %}">{{ ticket.status|title }}</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);background:var(--bg);border-radius:8px;padding:10px;margin-bottom:10px">{{ ticket.message[:200] }}{% if ticket.message|length>200 %}...{% endif %}</div>
+    {% if ticket.replies %}
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">Replies ({{ ticket.replies|length }})</div>
+    {% for reply in ticket.replies[-3:] %}
+    <div style="background:{% if reply.from=='admin' %}linear-gradient(135deg,#EEF2FF,#E0E7FF){% else %}var(--bg){% endif %};border-radius:10px;padding:10px;margin-bottom:6px">
+      <div style="font-size:11px;font-weight:800;color:{% if reply.from=='admin' %}var(--primary){% else %}var(--muted){% endif %};margin-bottom:4px">
+        {% if reply.from=='admin' %}👨‍💼 {{ reply.name }}{% else %}👤 {{ reply.name }}{% endif %} · {{ reply.time[:10] }}
+      </div>
+      <div style="font-size:13px">{{ reply.message }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% if ticket.status=='open' %}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input type="text" class="form-control" id="reply-{{ ticket.id }}" placeholder="Type reply..." style="font-size:13px">
+      <button class="btn btn-primary" style="width:auto;padding:12px 18px;flex-shrink:0" onclick="sendReply('{{ ticket.id }}')">Send</button>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+<nav class="bottom-nav">
+  <a href="/dashboard" class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></a>
+  <a href="/tasks" class="nav-item"><span class="nav-icon">📋</span><span>Tasks</span></a>
+  <div class="nav-center-wrap"><a href="/balance" class="nav-center">💰</a></div>
+  <a href="/referrals" class="nav-item"><span class="nav-icon">👥</span><span>Referrals</span></a>
+  <a href="/profile" class="nav-item"><span class="nav-icon">👤</span><span>Profile</span></a>
+</nav>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+async function submitTicket() {
+  const fd=new FormData();
+  fd.append('category',document.getElementById('s-cat').value);
+  fd.append('subject',document.getElementById('s-subj').value.trim());
+  fd.append('message',document.getElementById('s-msg').value.trim());
+  const r=await postForm('/support',fd,document.getElementById('s-btn'));
+  if(r?.success){document.getElementById('s-subj').value='';document.getElementById('s-msg').value='';setTimeout(()=>location.reload(),1400);}
+}
+async function sendReply(tid) {
+  const inp=document.getElementById('reply-'+tid);
+  const fd=new FormData(); fd.append('message',inp.value.trim());
+  const r=await postForm('/support/reply/'+tid,fd,null);
+  if(r?.success){inp.value='';setTimeout(()=>location.reload(),800);}
+}
+</script>
+</body>
+</html>

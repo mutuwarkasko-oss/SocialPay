@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SocialPay">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>{{ t('login') }} - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-hero">
+    <div class="auth-logo">Social<span>Pay</span></div>
+    <div class="auth-tagline">{{ t('tagline') }}</div>
+    <div class="lang-bar" style="margin-top:18px">
+      <a href="/set_lang/en" class="lang-btn {{ 'active' if lang == 'en' else '' }}">🇬🇧 EN</a>
+      <a href="/set_lang/ar" class="lang-btn {{ 'active' if lang == 'ar' else '' }}">🇸🇦 عربي</a>
+      <a href="/set_lang/ha" class="lang-btn {{ 'active' if lang == 'ha' else '' }}">🇳🇬 HA</a>
+    </div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab {{ 'active' if tab != 'register' else '' }}" onclick="switchTab('login')">{{ t('login') }}</button>
+      <button class="auth-tab {{ 'active' if tab == 'register' else '' }}" onclick="switchTab('register')">{{ t('register') }}</button>
+    </div>
+    <!-- LOGIN -->
+    <div id="form-login" style="{{ 'display:none' if tab == 'register' else '' }}">
+      <div class="form-group">
+        <label class="form-label">{{ t('email') }}</label>
+        <input type="email" class="form-control" id="l-email" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ t('password') }}</label>
+        <div class="input-wrap">
+          <input type="password" class="form-control" id="l-pw" placeholder="••••••••" autocomplete="current-password">
+          <button class="input-suffix" onclick="togglePw('l-pw',this)">👁️</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()">🚀 {{ t('login_now') }}</button>
+      <p style="text-align:center;margin-top:12px;font-size:13px">
+        <a href="#" id="forgot-pw-link" style="color:var(--muted);font-size:12px" onclick="openForgotPassword();return false">🔑 {{ t('forgot_password') }}</a>
+      </p>
+      <p style="text-align:center;margin-top:6px;font-size:13px;color:var(--muted)">
+        <a href="#" onclick="switchTab('register');return false" style="color:var(--accent);font-weight:800">{{ t('register') }} →</a>
+      </p>
+    </div>
+    <!-- REGISTER -->
+    <div id="form-reg" style="{{ '' if tab == 'register' else 'display:none' }}">
+      <div class="form-group">
+        <label class="form-label">{{ t('full_name') }}</label>
+        <input type="text" class="form-control" id="r-name" placeholder="John Doe" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ t('email') }}</label>
+        <input type="email" class="form-control" id="r-email" placeholder="you@email.com" autocomplete="email" value="{{ request.args.get('email','') }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ t('password') }}</label>
+        <div class="input-wrap">
+          <input type="password" class="form-control" id="r-pw" placeholder="Min 8 characters" autocomplete="new-password">
+          <button class="input-suffix" onclick="togglePw('r-pw',this)">👁️</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ t('confirm_password') }}</label>
+        <div class="input-wrap">
+          <input type="password" class="form-control" id="r-pw2" placeholder="Repeat password" autocomplete="new-password">
+          <button class="input-suffix" onclick="togglePw('r-pw2',this)">👁️</button>
+        </div>
+      </div>
+      {% if request.args.get('ref') %}
+      <div class="alert alert-success">🎁 You were invited! Sign-up bonus applies.</div>
+      <input type="hidden" id="r-ref" value="{{ request.args.get('ref','') }}">
+      {% else %}
+      <div class="form-group">
+        <label class="form-label">{{ t('referral_code') }}</label>
+        <input type="text" class="form-control" id="r-ref" placeholder="SP12345678">
+      </div>
+      {% endif %}
+      <button class="btn btn-primary" id="reg-btn" onclick="doRegister()">✨ {{ t('create_account') }}</button>
+      <p style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted)">
+        <a href="#" onclick="switchTab('login');return false" style="color:var(--accent);font-weight:800">← {{ t('login') }}</a>
+      </p>
+    </div>
+  </div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+function switchTab(t) {
+  document.getElementById('form-login').style.display = t==='login'?'':'none';
+  document.getElementById('form-reg').style.display = t==='register'?'':'none';
+  document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('active',(t==='login'&&i===0)||(t==='register'&&i===1)));
+}
+async function doLogin() {
+  const email=document.getElementById('l-email').value.trim();
+  const pw=document.getElementById('l-pw').value;
+  if(!email||!pw){showToast('{{ t("fill_all_fields") }}','warning');return;}
+  const fd=new FormData(); fd.append('email',email); fd.append('password',pw);
+  await postForm('/login',fd,document.getElementById('login-btn'));
+}
+async function doRegister() {
+  const name=document.getElementById('r-name').value.trim();
+  const email=document.getElementById('r-email').value.trim();
+  const pw=document.getElementById('r-pw').value;
+  const pw2=document.getElementById('r-pw2').value;
+  const ref=document.getElementById('r-ref')?.value.trim()||'';
+  if(!name||!email||!pw||!pw2){showToast('{{ t("fill_all_fields") }}','warning');return;}
+  if(pw.length<8){showToast('Password must be at least 8 characters','warning');return;}
+  if(pw!==pw2){showToast('Passwords do not match!','warning');return;}
+  const fd=new FormData();
+  fd.append('name',name);fd.append('email',email);fd.append('password',pw);fd.append('ref',ref);
+  await postForm('/register',fd,document.getElementById('reg-btn'));
+}
+
+// v8: Forgot Password - redirect to Telegram with user ID pre-filled
+function openForgotPassword() {
+  const email = document.getElementById('l-email')?.value.trim() || '';
+  const msg = email
+    ? `Hello, I forgot my SocialPay password. My email: ${email}. Please help me reset it.`
+    : `Hello, I forgot my SocialPay password. Please help me reset it.`;
+  const tgUrl = `https://t.me/socialpaysupport?text=${encodeURIComponent(msg)}`;
+  window.open(tgUrl, '_blank');
+}
+</script>
+</body>
+</html>

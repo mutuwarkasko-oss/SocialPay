@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SocialPay">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>{{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+{% if announcement %}
+<div class="announce-wrap" id="announceWrap">
+  <div class="announce-banner">
+    <div class="announce-inner">
+      <div class="announce-icon">📢</div>
+      <div class="announce-text">
+        <div class="announce-tag">📣 Announcement</div>
+        {{ announcement }}
+      </div>
+      <button class="announce-close" onclick="closeBanner()">✕</button>
+    </div>
+  </div>
+</div>
+<div style="height:58px" id="bannerSpacer"></div>
+{% endif %}
+
+<div class="app-header">
+  <div class="header-top">
+    <div class="app-logo">{{ get_app_name() }}</div>
+    <div class="header-icons">
+      <a href="/notifications" class="icon-btn">🔔
+        <span class="badge-dot" id="notif-badge" {% if unread==0 %}style="display:none"{% endif %}>{{ unread if unread<=9 else '9+' }}</span>
+      </a>
+      <a href="/profile" class="icon-btn">👤</a>
+    </div>
+  </div>
+  <div class="user-greeting">{{ t('welcome_back') }} 👋</div>
+  <div class="user-name">{{ user.name }}</div>
+  <div class="lang-bar" style="margin-top:12px">
+    <a href="/set_lang/en" class="lang-btn {{ 'active' if lang=='en' else '' }}">EN</a>
+    <a href="/set_lang/ar" class="lang-btn {{ 'active' if lang=='ar' else '' }}">عربي</a>
+    <a href="/set_lang/ha" class="lang-btn {{ 'active' if lang=='ha' else '' }}">HA</a>
+  </div>
+</div>
+
+<div class="page-content">
+  {% if pending_wd > 0 %}
+  <div class="pending-wd-alert">
+    <div class="pwd-icon">⏳</div>
+    <div style="flex:1">
+      <div class="pwd-title">Withdrawal Pending<span class="pwd-count">{{ pending_wd }}</span></div>
+      <div class="pwd-desc">Your withdrawal is awaiting admin approval. You'll be notified once processed.</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- BALANCE CARD -->
+  <div class="balance-card" style="margin-top:16px">
+    <button class="eye-btn" id="eyeBtn" onclick="toggleBalance()">👁️</button>
+    <div class="balance-label">{{ t('total_balance') }}</div>
+    <div class="balance-amount">₦{{ "%.2f"|format(wallet.naira) }}</div>
+    <div class="balance-sub">{{ t('my_id') }}: {{ user.id }}</div>
+    <div class="balance-chips">
+      <div class="balance-chip"><div class="chip-label">💵 Dollar</div><div class="chip-value">${{ "%.4f"|format(wallet.dollar) }}</div></div>
+      <div class="balance-chip"><div class="chip-label">✅ Tasks</div><div class="chip-value">{{ wallet.completed_tasks }}</div></div>
+      <div class="balance-chip"><div class="chip-label">👥 Refs</div><div class="chip-value">{{ wallet.referral_count }}</div></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section" style="padding-top:16px">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" style="color:var(--green)">₦{{ "%.0f"|format(wallet.total_earned) }}</div><div class="stat-lbl">{{ t('total_earned') }}</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--orange)">{{ wallet.pending_tasks }}</div><div class="stat-lbl">{{ t('pending_tasks') }}</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--red)">₦{{ "%.0f"|format(wallet.total_withdrawn) }}</div><div class="stat-lbl">{{ t('total_withdrawn') }}</div></div>
+    </div>
+  </div>
+
+  <!-- DAILY LOGIN & SPIN (Fix #11: manual claim; Fix: hide if disabled) -->
+  {% if (settings.daily_login_enabled and (daily_eligible or not daily_claimed)) or settings.spin_enabled %}
+  <div class="section">
+    <div class="section-header"><div class="section-title">🎁 Today's Bonuses</div></div>
+    <div style="display:grid;grid-template-columns:{% if settings.daily_login_enabled and settings.spin_enabled %}1fr 1fr{% else %}1fr{% endif %};gap:12px">
+      {% if settings.daily_login_enabled %}
+        {% if daily_eligible %}
+        <div class="card daily-card" style="cursor:pointer;background:linear-gradient(135deg,#1a6b3c,#06d6a0);color:white" onclick="claimDaily()" id="daily-claim-card">
+          <div style="font-size:30px;margin-bottom:8px">🎁</div>
+          <div style="font-size:13px;font-weight:800">Claim Daily Reward</div>
+          <div style="font-size:11px;opacity:0.85;margin-top:3px">+₦{{ settings.daily_login_reward|int }}</div>
+          <div style="font-size:10px;opacity:0.7;margin-top:4px">Day {{ daily_days }}</div>
+        </div>
+        {% elif not daily_claimed %}
+        <div class="card daily-card" style="cursor:pointer;opacity:0.7" onclick="claimDaily()">
+          <div style="font-size:30px;margin-bottom:8px">📅</div>
+          <div style="font-size:13px;font-weight:800">Daily Login</div>
+          <div style="font-size:11px;opacity:0.85;margin-top:3px">+₦{{ settings.daily_login_reward|int }} reward</div>
+          <div style="font-size:10px;opacity:0.7;margin-top:4px">Day {{ daily_days + 1 }}</div>
+        </div>
+        {% endif %}
+      {% endif %}
+      {% if settings.spin_enabled %}
+      <div class="card" style="background:linear-gradient(135deg,#FF6B6B,#FFE66D);color:white;cursor:pointer" onclick="openModal('spinModal')">
+        <div style="font-size:30px;margin-bottom:8px">🎰</div>
+        <div style="font-size:13px;font-weight:800">Spin & Win</div>
+        <div style="font-size:11px;opacity:0.85;margin-top:3px">Cost: ₦{{ spin_cost|int }}</div>
+        <div style="font-size:10px;opacity:0.7;margin-top:4px">Spin anytime!</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- QUICK ACTIONS -->
+  <div class="section">
+    <div class="section-header"><div class="section-title">⚡ Quick Actions</div></div>
+    <div class="actions-grid">
+      <a href="/tasks" class="action-item"><div class="action-icon icon-tasks">📋</div><span class="action-label">{{ t('tasks') }}</span></a>
+      <a href="/balance" class="action-item"><div class="action-icon icon-balance">💰</div><span class="action-label">{{ t('balance') }}</span></a>
+      <div class="action-item" onclick="openModal('transferModal')"><div class="action-icon icon-transfer">💸</div><span class="action-label">{{ t('transfer') }}</span></div>
+      <a href="/referrals" class="action-item"><div class="action-icon icon-referral">👥</div><span class="action-label">{{ t('referrals') }}</span></a>
+      <div class="action-item" onclick="openModal('withdrawModal')"><div class="action-icon icon-withdraw">🏧</div><span class="action-label">{{ t('withdraw') }}</span></div>
+      <div class="action-item" onclick="openModal('exchangeModal')"><div class="action-icon icon-exchange">💱</div><span class="action-label">{{ t('exchange') }}</span></div>
+      <a href="/my_submissions" class="action-item"><div class="action-icon icon-history">📊</div><span class="action-label">{{ t('history') }}</span></a>
+      <a href="/achievements" class="action-item"><div class="action-icon" style="background:linear-gradient(135deg,#FFD700,#FFA500)">🏅</div><span class="action-label">Badges</span></a>
+      <a href="/leaderboard" class="action-item"><div class="action-icon" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9)">🏆</div><span class="action-label">Ranks</span></a>
+      <a href="/chat" class="action-item"><div class="action-icon" style="background:linear-gradient(135deg,#06D6A0,#0ba360)">💬</div><span class="action-label">Chat</span></a>
+      <a href="/support" class="action-item"><div class="action-icon icon-support">🎫</div><span class="action-label">Support</span></a>
+    </div>
+  </div>
+
+  <!-- TELEGRAM SECTION -->
+  <div class="section">
+    <div class="section-header"><div class="section-title">📲 Join Our Community</div></div>
+    <div class="tg-buttons">
+      <a href="#" class="tg-btn tg-btn-channel" onclick="openTelegram('tg://resolve?domain=socialpaychannel','{{ tg_channel }}');return false">
+        <div class="tg-btn-icon">📢</div>
+        <div class="tg-btn-text"><div class="tg-btn-label">Join Channel</div><div class="tg-btn-sub">Latest updates & announcements</div></div>
+        <div class="tg-btn-arrow">›</div>
+      </a>
+      <a href="#" class="tg-btn tg-btn-group" onclick="openTelegram('tg://resolve?domain=socialearningpay','{{ tg_group }}');return false">
+        <div class="tg-btn-icon">👥</div>
+        <div class="tg-btn-text"><div class="tg-btn-label">Join Group</div><div class="tg-btn-sub">Community & discussion</div></div>
+        <div class="tg-btn-arrow">›</div>
+      </a>
+      <a href="#" class="tg-btn tg-btn-support" onclick="openTelegram('tg://resolve?domain=socialpaysupport','{{ tg_support }}');return false">
+        <div class="tg-btn-icon">🎧</div>
+        <div class="tg-btn-text"><div class="tg-btn-label">Support Agent</div><div class="tg-btn-sub">@socialpaysupport</div></div>
+        <div class="tg-btn-arrow">›</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- FIX #6: EARNINGS DISPLAY (masked usernames, no inviting leaderboard) -->
+  {% if earners %}
+  <div class="section">
+    <div class="section-header"><div class="section-title">🏆 Top Earners</div></div>
+    <div class="card" style="padding:0">
+      {% for e in earners %}
+      <div class="list-item" style="cursor:default">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:800">{{ loop.index }}</div>
+        <div class="list-info"><div class="list-name">{{ e.name }}</div><div class="list-sub">Earner</div></div>
+        <div style="font-size:14px;font-weight:800;color:var(--green)">₦{{ "%.0f"|format(e.earned) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- v9: JACKPOT + GOAL -->
+  <div class="section">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <!-- Jackpot -->
+      <div class="card" style="background:linear-gradient(135deg,#1a0533,#6B21A8);color:white;text-align:center;cursor:pointer" onclick="fetchJackpot()">
+        <div style="font-size:22px">🎰</div>
+        <div style="font-size:11px;font-weight:700;opacity:0.85;margin-top:4px">Jackpot Pool</div>
+        <div style="font-size:18px;font-weight:800;margin-top:4px" id="jackpot-amt">₦—</div>
+        <div style="font-size:10px;opacity:0.7;margin-top:2px" id="jackpot-sub">Loading...</div>
+      </div>
+      <!-- Goal -->
+      <div class="card" style="text-align:center">
+        <div style="font-size:22px">🎯</div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">My Goal</div>
+        {% if goal and goal.target > 0 %}
+        <div style="font-size:14px;font-weight:800;color:var(--primary);margin-top:4px">₦{{ "%.0f"|format(goal.target) }}</div>
+        {% set pct = [((wallet.naira / goal.target) * 100), 100]|min|int %}
+        <div style="background:#eee;border-radius:6px;height:6px;margin:6px 0;overflow:hidden"><div style="background:linear-gradient(90deg,var(--primary),var(--accent));height:100%;width:{{ pct }}%"></div></div>
+        <div style="font-size:10px;color:var(--muted)">{{ pct }}% reached</div>
+        {% else %}
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">No goal set</div>
+        <button class="btn btn-outline btn-sm" style="margin-top:6px;font-size:11px" onclick="openModal('goalModal')">Set Goal</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- v9: REFERRAL STATS MINI -->
+  <div class="section">
+    <div class="section-header"><div class="section-title">📊 My Stats This Week</div></div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" id="ref-week">—</div><div class="stat-lbl">Refs This Week</div></div>
+      <div class="stat-card"><div class="stat-val" id="ref-month">—</div><div class="stat-lbl">Refs This Month</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--green)">{{ wallet.completed_tasks }}</div><div class="stat-lbl">Tasks Done</div></div>
+    </div>
+  </div>
+
+  <!-- ID CARD -->
+  <div class="section">
+    <div class="id-card">
+      <div class="id-label">{{ t('my_id') }}</div>
+      <div class="copy-row">
+        <input type="text" value="{{ user.id }}" readonly>
+        <button class="copy-btn" onclick="copyText('{{ user.id }}','ID Copied!')">{{ t('copy') }}</button>
+      </div>
+    </div>
+  </div>
+  <div style="height:16px"></div>
+</div>
+
+<!-- v9: GOAL MODAL -->
+<div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎯 Set Earning Goal</div>
+    <div class="form-group"><label class="form-label">Target Amount (₦)</label><input type="number" class="form-control" id="goal-amt" placeholder="e.g. 10000"></div>
+    <button class="btn btn-primary" id="goal-btn" onclick="setGoal()" style="width:100%">💾 Save Goal</button>
+    <button class="btn btn-outline" style="margin-top:8px;width:100%" onclick="closeModal('goalModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- v9: DARK MODE TOGGLE (floating) -->
+{% if settings.get('dark_mode_enabled') %}
+<button id="dark-toggle-btn" onclick="toggleDarkMode()" style="position:fixed;bottom:80px;right:14px;width:44px;height:44px;border-radius:50%;border:none;background:var(--card);box-shadow:0 2px 12px rgba(0,0,0,0.15);font-size:20px;cursor:pointer;z-index:800;display:flex;align-items:center;justify-content:center">🌙</button>
+{% endif %}
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a href="/dashboard" class="nav-item active"><span class="nav-icon">🏠</span><span>Home</span></a>
+  <a href="/tasks" class="nav-item"><span class="nav-icon">📋</span><span>{{ t('tasks') }}</span></a>
+  <div class="nav-center-wrap"><a href="/balance" class="nav-center">💰</a></div>
+  <a href="/referrals" class="nav-item"><span class="nav-icon">👥</span><span>{{ t('referrals') }}</span></a>
+  <a href="/profile" class="nav-item"><span class="nav-icon">👤</span><span>{{ t('profile') }}</span></a>
+</nav>
+
+<!-- SPIN MODAL -->
+<div class="modal-overlay" id="spinModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎰 Spin & Win</div>
+    <div style="text-align:center;padding:10px 0">
+      <div style="position:relative;display:inline-block">
+        <div style="font-size:28px;position:absolute;top:-14px;left:50%;transform:translateX(-50%);z-index:10">▼</div>
+        <canvas id="spin-canvas" style="border-radius:50%;border:5px solid white;box-shadow:0 8px 32px rgba(0,0,0,0.25)"></canvas>
+      </div>
+      <div style="margin-top:20px">
+        <div style="font-size:13px;color:#333;margin-bottom:8px;font-weight:700">Cost: <span style="color:#e53935">₦{{ spin_cost|int }}</span> per spin</div>
+        <button class="btn btn-warning" id="spin-btn" onclick="openSpinConfirm()" style="max-width:220px;margin:0 auto">🎰 Spin Now!</button>
+      </div>
+    </div>
+    <button class="btn btn-outline" style="margin-top:14px" onclick="closeModal('spinModal')">Close</button>
+  </div>
+</div>
+
+<!-- SPIN CONFIRM MODAL -->
+<div class="modal-overlay" id="spinConfirmModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:10px 0 6px">
+      <div style="font-size:52px;margin-bottom:12px">🎰</div>
+      <div style="font-size:18px;font-weight:900;margin-bottom:6px">Ready to Spin?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+        ₦<strong id="spin-confirm-cost" style="color:var(--red)">{{ spin_cost|int }}</strong> will be deducted from your wallet.<br>
+        Win up to <strong style="color:var(--primary)">₦1,000!</strong>
+      </div>
+      <div style="background:var(--bg);border-radius:14px;padding:12px 16px;margin-bottom:20px;text-align:left">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🎯 Prize Chances</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="spin-chances-grid"></div>
+      </div>
+      <button class="btn btn-warning btn-icon" id="spin-confirm-btn" onclick="confirmAndSpin()">✅ Yes, Spin!</button>
+      <button class="btn btn-outline" style="margin-top:10px" onclick="closeModal('spinConfirmModal');openModal('spinModal')">❌ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- WITHDRAW MODAL -->
+<div class="modal-overlay" id="withdrawModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏧 {{ t('withdraw_money') }}</div>
+    {% if bank and bank.bank_name %}
+    <div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:14px;padding:14px;margin-bottom:14px;border:2px solid #06D6A0">
+      <div style="font-size:12px;font-weight:800;color:#1a6b3c;margin-bottom:8px">✅ Saved Bank Details (Auto-filled)</div>
+      <div style="font-size:13px;line-height:2;color:#333">
+        <div><b>Type:</b> {{ bank.type|title }}</div>
+        <div><b>Bank:</b> {{ bank.bank_name }}</div>
+        <div><b>Account:</b> {{ bank.account_number }}</div>
+        <div><b>Name:</b> {{ bank.account_name }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div style="background:#fff3cd;border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px;color:#856404">
+      ⚠️ No bank details saved. Please go to <a href="/profile" style="color:#0A2463;font-weight:700">Profile</a> to add bank details first.
+    </div>
+    {% endif %}
+    <div class="form-group">
+      <label class="form-label">Currency</label>
+      <select class="form-control" id="wd-curr">
+        <option value="naira">₦ Naira</option>
+        <option value="dollar">$ Dollar / Crypto</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">{{ t('amount') }}</label><input type="number" class="form-control" id="wd-amt" placeholder="0.00"></div>
+    <div class="form-group"><label class="form-label">🔐 {{ t('pin') }}</label><input type="password" class="form-control" id="wd-pin" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+    <button class="btn btn-primary" id="wd-btn" onclick="doWithdraw()">💸 {{ t('submit') }}</button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="closeModal('withdrawModal')">{{ t('cancel') }}</button>
+  </div>
+</div>
+
+<!-- TRANSFER MODAL -->
+<div class="modal-overlay" id="transferModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💸 {{ t('send_money') }}</div>
+    <div class="form-group"><label class="form-label">{{ t('receiver_id') }}</label>
+      <input type="text" class="form-control" id="tr-recv" placeholder="SP12345678" oninput="lookupUser(this.value,'tr-name')">
+      <div id="tr-name" style="font-size:13px;font-weight:700;margin-top:6px;min-height:18px"></div>
+    </div>
+    <div class="form-group"><label class="form-label">{{ t('amount') }} (₦)</label><input type="number" class="form-control" id="tr-amt" placeholder="0.00"></div>
+    <div class="form-group"><label class="form-label">{{ t('pin') }}</label><input type="password" class="form-control" id="tr-pin" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+    <button class="btn btn-primary" id="tr-btn" onclick="doTransfer()">{{ t('send_now') }}</button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="closeModal('transferModal')">{{ t('cancel') }}</button>
+  </div>
+</div>
+
+<!-- EXCHANGE MODAL -->
+<div class="modal-overlay" id="exchangeModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💱 {{ t('exchange_currency') }}</div>
+    <div class="form-group"><label class="form-label">From → To</label>
+      <select class="form-control" id="ex-from" onchange="calcExchangePreview()">
+        <option value="naira">₦ Naira → $ Dollar</option>
+        <option value="dollar">$ Dollar → ₦ Naira</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">{{ t('amount') }}</label>
+      <input type="number" class="form-control" id="ex-amt" placeholder="0.00" oninput="calcExchangePreview()">
+    </div>
+    <div id="ex-preview" style="display:none;background:var(--primary-light);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:1.5px solid rgba(26,107,60,0.15)">
+      <div style="font-size:11px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📊 Preview</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-size:11px;color:var(--muted);font-weight:700">You Pay</div><div style="font-size:18px;font-weight:900;color:var(--text)" id="ex-preview-from">—</div></div>
+        <div style="font-size:22px">➡️</div>
+        <div style="text-align:right"><div style="font-size:11px;color:var(--muted);font-weight:700">You Get</div><div style="font-size:22px;font-weight:900;color:var(--primary)" id="ex-preview-to">—</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center" id="ex-preview-rate"></div>
+    </div>
+    <button class="btn btn-primary" id="ex-btn" onclick="doExchange()">💱 {{ t('exchange') }}</button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="closeModal('exchangeModal')">{{ t('cancel') }}</button>
+  </div>
+</div>
+
+<!-- PWA BANNER -->
+<div id="pwa-banner" class="pwa-banner" style="display:none">
+  <div style="font-size:36px">📱</div>
+  <div class="pwa-banner-text">
+    <div class="pwa-banner-title">Install {{ get_app_name() }}</div>
+    <div class="pwa-banner-sub">Add to Home Screen for quick access</div>
+  </div>
+  <button class="pwa-banner-btn" onclick="installPWA()">Install</button>
+  <button class="pwa-banner-close" onclick="dismissPWA()">✕</button>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script>
+const SPIN_PRIZES = {{ spin_prizes_js|tojson }};
+const SPIN_COST = {{ spin_cost|int }};
+const EXCHANGE_RATE = {{ settings.exchange_rate|float }};
+document.addEventListener('DOMContentLoaded',()=>initSpinWheel(SPIN_PRIZES));
+
+// Fix #11: Manual daily claim
+async function claimDaily() {
+  const card = document.getElementById('daily-claim-card');
+  if(card) card.style.opacity='0.6';
+  const fd = new FormData();
+  const r = await postForm('/claim_daily', fd, null);
+  if(r?.success) {
+    showToast(r.message || '🎁 Daily reward claimed!', 'success');
+    setTimeout(()=>location.reload(), 1500);
+  } else {
+    showToast(r?.message || 'Could not claim reward', 'warning');
+    if(card) card.style.opacity='1';
+  }
+}
+
+function openSpinConfirm() {
+  const grid = document.getElementById('spin-chances-grid');
+  if(grid) {
+    const probLabels = ['50%','30%','10%','5%','3%','2%'];
+    grid.innerHTML = SPIN_PRIZES.map((p,i) => {
+      const prob = probLabels[i] || '1%';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;background:white;border-radius:10px;padding:7px 10px;">
+        <span style="font-size:13px;font-weight:800">${p.label}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">${prob}</span>
+      </div>`;
+    }).join('');
+  }
+  closeModal('spinModal');
+  openModal('spinConfirmModal');
+}
+
+async function confirmAndSpin() {
+  closeModal('spinConfirmModal');
+  openModal('spinModal');
+  await doSpin(SPIN_PRIZES);
+}
+
+function calcExchangePreview() {
+  const from = document.getElementById('ex-from')?.value;
+  const amt = parseFloat(document.getElementById('ex-amt')?.value || 0);
+  const preview = document.getElementById('ex-preview');
+  if(!preview || !amt || amt<=0) { if(preview) preview.style.display='none'; return; }
+  preview.style.display='block';
+  if(from==='naira') {
+    document.getElementById('ex-preview-from').textContent=`₦${amt.toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    document.getElementById('ex-preview-to').textContent=`$${(amt/EXCHANGE_RATE).toFixed(4)}`;
+    document.getElementById('ex-preview-rate').textContent=`Rate: ₦${EXCHANGE_RATE.toLocaleString()} = $1`;
+  } else {
+    document.getElementById('ex-preview-from').textContent=`$${amt.toFixed(4)}`;
+    document.getElementById('ex-preview-to').textContent=`₦${(amt*EXCHANGE_RATE).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    document.getElementById('ex-preview-rate').textContent=`Rate: $1 = ₦${EXCHANGE_RATE.toLocaleString()}`;
+  }
+}
+
+// v9: Jackpot fetch
+async function fetchJackpot() {
+  try {
+    const r = await fetch('/api/jackpot',{credentials:'same-origin'});
+    const d = await r.json();
+    const el = document.getElementById('jackpot-amt');
+    const sub = document.getElementById('jackpot-sub');
+    if(el) el.textContent = d.enabled ? `₦${(d.amount||0).toLocaleString('en-NG',{maximumFractionDigits:0})}` : 'Disabled';
+    if(sub) sub.textContent = d.last_winner ? `Last winner: ${d.last_winner.slice(0,8)}…` : `Spin to contribute!`;
+  } catch {}
+}
+fetchJackpot();
+
+// v9: Referral stats
+async function loadRefStats() {
+  try {
+    const r = await fetch('/referral_stats',{credentials:'same-origin'});
+    const d = await r.json();
+    const w = document.getElementById('ref-week');
+    const m = document.getElementById('ref-month');
+    if(w) w.textContent = d.week;
+    if(m) m.textContent = d.month;
+  } catch {}
+}
+loadRefStats();
+
+// v9: Set goal
+async function setGoal() {
+  const amt = document.getElementById('goal-amt')?.value;
+  if(!amt || parseFloat(amt)<=0) { showToast('Enter a valid amount','warning'); return; }
+  const fd = new FormData();
+  fd.append('target', amt);
+  fd.append('currency', 'naira');
+  const r = await postForm('/set_goal', fd, document.getElementById('goal-btn'));
+  if(r?.success) { closeModal('goalModal'); setTimeout(()=>location.reload(),800); }
+}
+
+// v9: Dark mode
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  localStorage.setItem('sp_dark', isDark ? '1' : '0');
+  const btn = document.getElementById('dark-toggle-btn');
+  if(btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+// Apply saved dark mode
+if(localStorage.getItem('sp_dark') === '1') {
+  document.body.classList.add('dark-mode');
+  const btn = document.getElementById('dark-toggle-btn');
+  if(btn) btn.textContent = '☀️';
+}
+</script>
+</body>
+</html>

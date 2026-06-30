@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A2463"><link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SocialPay">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>{{ t('referrals') }} - {{ get_app_name() }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="page-header">
+  <a href="/dashboard" class="back-btn">←</a>
+  <div class="page-title-wrap"><div class="page-title">👥 {{ t('referrals') }}</div></div>
+</div>
+<div class="page-content" style="padding:14px 14px 90px">
+  <div class="stats-row" style="margin-bottom:16px">
+    <div class="stat-card"><div class="stat-val">{{ referrals|length }}</div><div class="stat-lbl">L1 Refs</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--accent)">{{ referrals_l2|length }}</div><div class="stat-lbl">L2 Refs</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--green)">₦{{ "%.0f"|format(wallet.referral_bonus_earned) }}</div><div class="stat-lbl">Bonus</div></div>
+  </div>
+
+  <div class="card" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:10px">🎁 {{ t('how_referral_works') }}</div>
+    <div style="font-size:13px;color:#92400E;line-height:2">
+      1️⃣ Share your referral link<br>
+      2️⃣ Friend registers &amp; earns<br>
+      3️⃣ Friend completes {{ settings.referral_tasks_needed }} tasks<br>
+      <strong>Level 1:</strong> You earn ₦{{ settings.referral_bonus }}<br>
+      <strong>Level 2:</strong> You earn ₦{{ settings.referral_bonus_l2 }} (friend's referrals)
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔗 {{ t('referral_link') }}</div>
+    <div class="copy-row">
+      <input type="text" id="rl" value="{{ ref_link }}" readonly>
+      <button class="copy-btn" onclick="copyText(document.getElementById('rl').value,'Copied!')">{{ t('copy') }}</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <a href="https://wa.me/?text=Join {{ get_app_name() }} and earn money! {{ ref_link }}" target="_blank" class="btn btn-success btn-sm btn-icon" style="flex:1">📱 WhatsApp</a>
+      <a href="https://t.me/share/url?url={{ ref_link|urlencode }}&text=Join {{ get_app_name() }} and earn!" target="_blank" class="btn btn-sm btn-icon" style="flex:1;background:linear-gradient(135deg,#229ed9,#0088cc);color:white">✈️ Telegram</a>
+    </div>
+  </div>
+
+
+  <!-- L1 REFERRALS -->
+  <div style="font-size:14px;font-weight:800;margin-bottom:10px">Level 1 Referrals ({{ referrals|length }})</div>
+  {% if referrals %}
+  <div class="card" style="padding:0;margin-bottom:14px">
+    {% for r in referrals %}
+    <div class="list-item" style="cursor:default">
+      <div style="width:44px;height:44px;border-radius:14px;background:{% if r.bonus_paid %}#D1FAE5{% else %}#FEF3C7{% endif %};display:flex;align-items:center;justify-content:center;font-size:22px">{% if r.bonus_paid %}✅{% else %}⏳{% endif %}</div>
+      <div class="list-info">
+        <div class="list-name">{{ r.name }}</div>
+        <div class="list-sub">{{ r.tasks_done }}/{{ r.tasks_needed }} tasks
+          <div class="progress"><div class="progress-bar" style="width:{{ [r.tasks_done/r.tasks_needed*100,100]|min }}%;background:{% if r.bonus_paid %}var(--green){% else %}var(--yellow){% endif %}"></div></div>
+        </div>
+      </div>
+      <div>{% if r.bonus_paid %}<span class="badge badge-success">+₦{{ settings.referral_bonus }}</span>{% else %}<span class="badge badge-warning">Pending</span>{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No L1 Referrals Yet</div><div class="empty-desc">Share your link to start earning!</div></div>
+  {% endif %}
+
+  <!-- L2 REFERRALS -->
+  {% if referrals_l2 %}
+  <div style="font-size:14px;font-weight:800;margin-bottom:10px">Level 2 Referrals ({{ referrals_l2|length }})</div>
+  <div class="card" style="padding:0;margin-bottom:14px">
+    {% for r in referrals_l2 %}
+    <div class="list-item" style="cursor:default">
+      <div style="width:44px;height:44px;border-radius:14px;background:{% if r.bonus_paid %}#DBEAFE{% else %}#F3E8FF{% endif %};display:flex;align-items:center;justify-content:center;font-size:22px">{% if r.bonus_paid %}💙{% else %}🔮{% endif %}</div>
+      <div class="list-info">
+        <div class="list-name">{{ r.name }} <span class="badge badge-info" style="font-size:10px">L2</span></div>
+        <div class="list-sub">{{ r.tasks_done }}/{{ r.tasks_needed }} tasks
+          <div class="progress"><div class="progress-bar" style="width:{{ [r.tasks_done/r.tasks_needed*100,100]|min }}%;background:var(--accent)"></div></div>
+        </div>
+      </div>
+      <div>{% if r.bonus_paid %}<span class="badge badge-info">+₦{{ settings.referral_bonus_l2 }}</span>{% else %}<span class="badge" style="background:#F3E8FF;color:#7C3AED">Pending</span>{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<nav class="bottom-nav">
+  <a href="/dashboard" class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></a>
+  <a href="/tasks" class="nav-item"><span class="nav-icon">📋</span><span>{{ t('tasks') }}</span></a>
+  <div class="nav-center-wrap"><a href="/balance" class="nav-center">💰</a></div>
+  <a href="/referrals" class="nav-item active"><span class="nav-icon">👥</span><span>{{ t('referrals') }}</span></a>
+  <a href="/profile" class="nav-item"><span class="nav-icon">👤</span><span>{{ t('profile') }}</span></a>
+</nav>
+<div id="toast-container" class="toast-container"></div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
